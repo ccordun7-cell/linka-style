@@ -10,16 +10,28 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const { name, price, description, category, is_barefoot, is_active, sizes, new_images } = body
 
   // Update produs
-  await supabaseAdmin.from('products').update({
+  const { error: updateError } = await supabaseAdmin.from('products').update({
     name, price, description, category, is_barefoot, is_active
   }).eq('id', params.id)
 
+  if (updateError) {
+    return NextResponse.json({ error: 'Eroare la actualizarea produsului: ' + updateError.message }, { status: 500 })
+  }
+
   // Update mărimi
   if (sizes) {
-    await supabaseAdmin.from('product_sizes').delete().eq('product_id', params.id)
-    await supabaseAdmin.from('product_sizes').insert(
-      sizes.map((s: any) => ({ product_id: params.id, size: s.size, price: s.price, stock_quantity: s.stock }))
-    )
+    const { error: deleteSizesError } = await supabaseAdmin.from('product_sizes').delete().eq('product_id', params.id)
+    if (deleteSizesError) {
+      return NextResponse.json({ error: 'Eroare la stergerea marimilor vechi: ' + deleteSizesError.message }, { status: 500 })
+    }
+    if (sizes.length) {
+      const { error: insertSizesError } = await supabaseAdmin.from('product_sizes').insert(
+        sizes.map((s: any) => ({ product_id: params.id, size: s.size, price: s.price, stock_quantity: s.stock }))
+      )
+      if (insertSizesError) {
+        return NextResponse.json({ error: 'Eroare la salvarea marimilor noi: ' + insertSizesError.message }, { status: 500 })
+      }
+    }
   }
 
   // Upload imagini noi
@@ -29,11 +41,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     for (const img of oldImages || []) {
       if (img.cloudinary_id) await deleteImage(img.cloudinary_id)
     }
-    await supabaseAdmin.from('product_images').delete().eq('product_id', params.id)
+    const { error: deleteImagesError } = await supabaseAdmin.from('product_images').delete().eq('product_id', params.id)
+    if (deleteImagesError) {
+      return NextResponse.json({ error: 'Eroare la stergerea pozelor vechi: ' + deleteImagesError.message }, { status: 500 })
+    }
 
     for (let i = 0; i < new_images.length; i++) {
       const { url, cloudinary_id } = await uploadImage(new_images[i])
-      await supabaseAdmin.from('product_images').insert({ product_id: params.id, url, cloudinary_id, position: i })
+      const { error: insertImageError } = await supabaseAdmin.from('product_images').insert({ product_id: params.id, url, cloudinary_id, position: i })
+      if (insertImageError) {
+        return NextResponse.json({ error: 'Eroare la salvarea pozei noi: ' + insertImageError.message }, { status: 500 })
+      }
     }
   }
 
@@ -44,6 +62,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!await isAuthenticated()) return NextResponse.json({ error: 'Neautorizat' }, { status: 401 })
 
   // Soft delete
-  await supabaseAdmin.from('products').update({ is_active: false }).eq('id', params.id)
+  const { error } = await supabaseAdmin.from('products').update({ is_active: false }).eq('id', params.id)
+  if (error) {
+    return NextResponse.json({ error: 'Eroare la ascunderea produsului: ' + error.message }, { status: 500 })
+  }
   return NextResponse.json({ success: true })
 }
