@@ -6,6 +6,7 @@ const menuItems = [
   { href: '/admin', label: 'Dashboard', icon: '📊' },
   { href: '/admin/produse', label: 'Produse', icon: '👟' },
   { href: '/admin/produse/descrieri', label: 'Descrieri', icon: '📝' },
+  { href: '/admin/branduri', label: 'Branduri', icon: '🏷️' },
   { href: '/admin/comenzi', label: 'Comenzi', icon: '📦' },
   { href: '/admin/setari', label: 'Setari', icon: '⚙️' },
 ]
