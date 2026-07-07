@@ -87,20 +87,12 @@ export default function ProdusePage() {
 
 function FormAdaugaProdus({ onClose }: { onClose: () => void }) {
   const [form, setForm] = useState({
-    name: '', brand_id: '', category: 'girls', type: 'sandale',
+    name: '', brand_name: '', category: 'girls', type: 'sandale',
     price: '', description: '', is_barefoot: false
   })
   const [sizes, setSizes] = useState([{ size: '', price: '', stock: '10' }])
   const [images, setImages] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
-  const [brands, setBrands] = useState<any[]>([])
-
-  useEffect(() => {
-    fetch('/api/produse?_brands=1').then(r => r.json()).then(d => {
-      // Fetch brands separately
-    })
-    fetch('/api/branduri').then(r => r.json()).then(d => setBrands(d || []))
-  }, [])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -115,7 +107,7 @@ function FormAdaugaProdus({ onClose }: { onClose: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name || !form.brand_id || !form.price) {
+    if (!form.name || !form.brand_name || !form.price) {
       alert('Completeaza toate campurile obligatorii!')
       return
     }
@@ -150,10 +142,7 @@ function FormAdaugaProdus({ onClose }: { onClose: () => void }) {
             </div>
             <div className="form-group">
               <label>Brand *</label>
-              <select className="form-control" value={form.brand_id} onChange={e => setForm({...form,brand_id:e.target.value})} required>
-                <option value="">Selecteaza brand</option>
-                {brands.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
+              <input className="form-control" value={form.brand_name} onChange={e => setForm({...form,brand_name:e.target.value})} placeholder="ex: Biomecanics" required />
             </div>
             <div className="form-group">
               <label>Categorie *</label>
