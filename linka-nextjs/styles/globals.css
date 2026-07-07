@@ -1,0 +1,74 @@
+:root {
+  --sky: #4AADE8;
+  --navy: #1B2E4B;
+  --red: #E84444;
+  --orange: #ff6b35;
+  --gray: #6B7A90;
+  --light: #F0F4F8;
+  --green: #1A8A50;
+  --white: #ffffff;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #fff;
+  color: var(--navy);
+  overflow-x: hidden;
+}
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; font-family: inherit; }
+img { max-width: 100%; display: block; }
+:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; border-radius: 4px; }
+
+/* Admin styles */
+.admin-layout { display: flex; min-height: 100vh; background: #f8faff; }
+.admin-sidebar {
+  width: 240px; background: var(--navy); color: white;
+  padding: 24px 0; position: fixed; top: 0; left: 0; bottom: 0;
+  overflow-y: auto; z-index: 100;
+}
+.admin-content { margin-left: 240px; padding: 32px; flex: 1; }
+.admin-card {
+  background: white; border-radius: 16px;
+  padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,.06);
+}
+.btn-primary {
+  background: var(--sky); color: white; border: none;
+  border-radius: 10px; padding: 10px 20px;
+  font-weight: 700; font-size: 14px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-danger {
+  background: var(--red); color: white; border: none;
+  border-radius: 10px; padding: 8px 16px;
+  font-weight: 700; font-size: 13px; cursor: pointer;
+}
+.btn-secondary {
+  background: var(--light); color: var(--navy); border: none;
+  border-radius: 10px; padding: 10px 20px;
+  font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; font-weight: 700; color: var(--gray); margin-bottom: 6px; }
+.form-control {
+  width: 100%; border: 1.5px solid #e0e4ea; border-radius: 10px;
+  padding: 10px 14px; font-size: 14px; font-family: inherit;
+  outline: none; transition: border-color .2s;
+}
+.form-control:focus { border-color: var(--sky); }
+.badge {
+  display: inline-block; border-radius: 20px;
+  padding: 3px 10px; font-size: 11px; font-weight: 700;
+}
+.badge-new { background: #e3f2fd; color: #1565c0; }
+.badge-confirmata { background: #e8f5e9; color: #2e7d32; }
+.badge-in_livrare { background: #fff3e0; color: #e65100; }
+.badge-livrata { background: #e8f5e9; color: var(--green); }
+.badge-anulata { background: #ffebee; color: var(--red); }
+.badge-noua { background: #fff9c4; color: #f57f17; }
+
+@media (max-width: 768px) {
+  .admin-sidebar { display: none; }
+  .admin-content { margin-left: 0; padding: 16px; }
+}
