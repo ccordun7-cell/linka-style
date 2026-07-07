@@ -7,6 +7,7 @@ export default function ProdusePage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [search, setSearch] = useState('')
 
   useEffect(() => { loadProducts() }, [])
@@ -20,8 +21,17 @@ export default function ProdusePage() {
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Sigur vrei sa ascunzi produsul "${name}"?`)) return
-    await fetch(`/api/produse/${id}`, { method: 'DELETE' })
-    loadProducts()
+    try {
+      const res = await fetch(`/api/produse/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert(`Nu s-a putut ascunde produsul${err.error ? ': ' + err.error : ''}. Verifica daca esti inca logat (incearca sa reincarci pagina sau sa te loghezi din nou).`)
+        return
+      }
+      await loadProducts()
+    } catch {
+      alert('Eroare de conexiune. Incearca din nou.')
+    }
   }
 
   const filtered = products.filter(p =>
@@ -40,7 +50,8 @@ export default function ProdusePage() {
         </button>
       </div>
 
-      {showForm && <FormAdaugaProdus onClose={() => { setShowForm(false); loadProducts() }} />}
+      {showForm && <FormProdus onClose={() => { setShowForm(false); loadProducts() }} />}
+      {editingProduct && <FormProdus product={editingProduct} onClose={() => { setEditingProduct(null); loadProducts() }} />}
 
       <div className="admin-card">
         <div style={{marginBottom:'12px',color:'#6B7A90',fontSize:'13px'}}>{filtered.length} produse</div>
@@ -56,7 +67,8 @@ export default function ProdusePage() {
               </thead>
               <tbody>
                 {filtered.map(p => (
-                  <tr key={p.id} style={{borderBottom:'1px solid #f0f4f8'}}>
+                  <tr key={p.id} style={{borderBottom:'1px solid #f0f4f8', cursor:'pointer'}}
+                    onClick={() => setEditingProduct(p)}>
                     <td style={{padding:'10px'}}>
                       {p.images?.[0] && <img src={p.images[0].url} alt={p.name} style={{width:50,height:50,objectFit:'cover',borderRadius:8}} />}
                     </td>
@@ -69,7 +81,10 @@ export default function ProdusePage() {
                     <td style={{padding:'10px',fontSize:'12px',color:'#6B7A90'}}>
                       {p.sizes?.map((s: any) => s.size).join(', ')}
                     </td>
-                    <td style={{padding:'10px'}}>
+                    <td style={{padding:'10px', display:'flex', gap:'8px'}} onClick={e => e.stopPropagation()}>
+                      <button className="btn-secondary" onClick={() => setEditingProduct(p)}>
+                        Editeaza
+                      </button>
                       <button className="btn-danger" onClick={() => handleDelete(p.id, p.name)}>
                         Ascunde
                       </button>
@@ -85,14 +100,26 @@ export default function ProdusePage() {
   )
 }
 
-function FormAdaugaProdus({ onClose }: { onClose: () => void }) {
+function FormProdus({ product, onClose }: { product?: Product, onClose: () => void }) {
+  const isEditing = !!product
   const [form, setForm] = useState({
-    name: '', brand_name: '', category: 'girls', type: 'sandale',
-    price: '', description: '', is_barefoot: false
+    name: product?.name || '',
+    brand_name: product?.brand_name || '',
+    category: product?.category || 'girls',
+    type: product?.type || 'sandale',
+    price: product?.price ? String(product.price) : '',
+    description: product?.description || '',
+    is_barefoot: product?.is_barefoot || false
   })
-  const [sizes, setSizes] = useState([{ size: '', price: '', stock: '10' }])
+  const [sizes, setSizes] = useState(
+    product?.sizes?.length
+      ? product.sizes.map((s: any) => ({ size: String(s.size), price: String(s.price), stock: String(s.stock) }))
+      : [{ size: '', price: '', stock: '10' }]
+  )
+  const [existingImages] = useState<string[]>(product?.images?.map((img: any) => img.url) || [])
   const [images, setImages] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -107,31 +134,64 @@ function FormAdaugaProdus({ onClose }: { onClose: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name || !form.brand_name || !form.price) {
-      alert('Completeaza toate campurile obligatorii!')
+    if (!form.name || (!isEditing && !form.brand_name) || !form.price) {
+      setError('Completeaza toate campurile obligatorii!')
       return
     }
+    setError('')
     setLoading(true)
-    const res = await fetch('/api/produse', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        price: parseInt(form.price),
-        sizes: sizes.filter(s => s.size).map(s => ({ size: parseInt(s.size), price: parseInt(s.price) || parseInt(form.price), stock: parseInt(s.stock) || 10 })),
-        images
-      })
-    })
-    if (res.ok) { alert('Produs adaugat cu succes!'); onClose() }
-    else { alert('Eroare la adaugare!') }
-    setLoading(false)
+    try {
+      const sizesPayload = sizes.filter(s => s.size).map(s => ({
+        size: parseInt(s.size), price: parseInt(s.price) || parseInt(form.price), stock: parseInt(s.stock) || 10
+      }))
+
+      let res: Response
+      if (isEditing) {
+        res = await fetch(`/api/produse/${product!.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: form.name,
+            price: parseInt(form.price),
+            description: form.description,
+            category: form.category,
+            is_barefoot: form.is_barefoot,
+            is_active: true,
+            sizes: sizesPayload,
+            new_images: images.length ? images : undefined
+          })
+        })
+      } else {
+        res = await fetch('/api/produse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...form,
+            price: parseInt(form.price),
+            sizes: sizesPayload,
+            images
+          })
+        })
+      }
+
+      if (res.ok) {
+        onClose()
+      } else {
+        const err = await res.json().catch(() => ({}))
+        setError(err.error || 'Eroare la salvare. Verifica daca esti inca logat.')
+      }
+    } catch {
+      setError('Eroare de conexiune. Incearca din nou.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1000,overflow:'auto',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'20px'}}>
       <div style={{background:'white',borderRadius:'16px',padding:'32px',width:'100%',maxWidth:'600px',margin:'20px auto'}}>
         <div style={{display:'flex',justifyContent:'space-between',marginBottom:'24px'}}>
-          <h2 style={{fontSize:'20px',fontWeight:800}}>Adauga produs nou</h2>
+          <h2 style={{fontSize:'20px',fontWeight:800}}>{isEditing ? `Editeaza: ${product!.name}` : 'Adauga produs nou'}</h2>
           <button onClick={onClose} style={{background:'none',border:'none',fontSize:'20px',cursor:'pointer',color:'#999'}}>✕</button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -141,12 +201,14 @@ function FormAdaugaProdus({ onClose }: { onClose: () => void }) {
               <input className="form-control" value={form.name} onChange={e => setForm({...form,name:e.target.value})} placeholder="ex: Sandale fete Biomecanics roz" required />
             </div>
             <div className="form-group">
-              <label>Brand *</label>
-              <input className="form-control" value={form.brand_name} onChange={e => setForm({...form,brand_name:e.target.value})} placeholder="ex: Biomecanics" required />
+              <label>Brand {isEditing ? '' : '*'}</label>
+              <input className="form-control" value={form.brand_name} onChange={e => setForm({...form,brand_name:e.target.value})}
+                placeholder="ex: Biomecanics" required={!isEditing} disabled={isEditing}
+                title={isEditing ? 'Brandul nu poate fi schimbat aici' : ''} />
             </div>
             <div className="form-group">
               <label>Categorie *</label>
-              <select className="form-control" value={form.category} onChange={e => setForm({...form,category:e.target.value})}>
+              <select className="form-control" value={form.category} onChange={e => setForm({...form,category:e.target.value as any})}>
                 <option value="girls">Fete</option>
                 <option value="boys">Baieti</option>
                 <option value="barefoot">Barefoot</option>
@@ -155,7 +217,7 @@ function FormAdaugaProdus({ onClose }: { onClose: () => void }) {
             </div>
             <div className="form-group">
               <label>Tip produs</label>
-              <select className="form-control" value={form.type} onChange={e => setForm({...form,type:e.target.value})}>
+              <select className="form-control" value={form.type} onChange={e => setForm({...form,type:e.target.value})} disabled={isEditing}>
                 <option value="sandale">Sandale</option>
                 <option value="sneakers">Sneakers</option>
                 <option value="pantofi">Pantofi</option>
@@ -192,8 +254,22 @@ function FormAdaugaProdus({ onClose }: { onClose: () => void }) {
             </button>
           </div>
 
+          {isEditing && existingImages.length > 0 && (
+            <div className="form-group">
+              <label>Imagini curente</label>
+              <div style={{display:'flex',gap:'8px',flexWrap:'wrap',marginBottom:'10px'}}>
+                {existingImages.map((img, i) => (
+                  <img key={i} src={img} style={{width:80,height:80,objectFit:'cover',borderRadius:8}} />
+                ))}
+              </div>
+              <p style={{fontSize:'12px',color:'#6B7A90',marginBottom:'10px'}}>
+                Daca incarci imagini noi mai jos, acestea vor <strong>inlocui</strong> toate imaginile curente.
+              </p>
+            </div>
+          )}
+
           <div className="form-group">
-            <label>Imagini produs (max 3)</label>
+            <label>{isEditing ? 'Inlocuieste imaginile (optional)' : 'Imagini produs (max 3)'}</label>
             <input type="file" accept="image/*" multiple onChange={handleImageUpload} style={{display:'block',marginBottom:'10px'}} />
             <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
               {images.map((img, i) => (
@@ -206,9 +282,11 @@ function FormAdaugaProdus({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
+          {error && <p style={{color:'#E84444',fontSize:'13px',marginTop:'8px'}}>{error}</p>}
+
           <div style={{display:'flex',gap:'12px',marginTop:'24px'}}>
             <button type="submit" className="btn-primary" disabled={loading} style={{flex:1,justifyContent:'center',padding:'14px'}}>
-              {loading ? 'Se salveaza...' : 'Publica produsul'}
+              {loading ? 'Se salveaza...' : isEditing ? 'Salveaza modificarile' : 'Publica produsul'}
             </button>
             <button type="button" className="btn-secondary" onClick={onClose} style={{padding:'14px 20px'}}>Anuleaza</button>
           </div>
