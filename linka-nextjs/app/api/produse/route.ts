@@ -21,6 +21,37 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(data)
 }
 
+// Genereaza un slug simplu dintr-un text (nume brand, nume produs etc)
+function slugify(text: string) {
+  return text.toLowerCase()
+    .replace(/[ăâ]/g, 'a').replace(/[îí]/g, 'i')
+    .replace(/[șş]/g, 's').replace(/[țţ]/g, 't')
+    .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+}
+
+// Gaseste brandul dupa nume (case-insensitive) sau il creeaza daca nu exista
+async function findOrCreateBrand(brandName: string): Promise<string> {
+  const cleanName = brandName.trim()
+  const slug = slugify(cleanName)
+
+  const { data: existing } = await supabaseAdmin
+    .from('brands')
+    .select('id')
+    .ilike('name', cleanName)
+    .maybeSingle()
+
+  if (existing) return existing.id
+
+  const { data: created, error } = await supabaseAdmin
+    .from('brands')
+    .insert({ slug, name: cleanName })
+    .select('id')
+    .single()
+
+  if (error) throw new Error(error.message)
+  return created.id
+}
+
 // POST - adaugă produs nou (admin only)
 export async function POST(req: NextRequest) {
   if (!await isAuthenticated()) {
@@ -28,14 +59,21 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { name, brand_id, type, category, price, description, is_barefoot, sizes, images } = body
+  const { name, brand_name, type, category, price, description, is_barefoot, sizes, images } = body
+
+  if (!brand_name || !brand_name.trim()) {
+    return NextResponse.json({ error: 'Numele brandului este obligatoriu' }, { status: 400 })
+  }
+
+  let brand_id: string
+  try {
+    brand_id = await findOrCreateBrand(brand_name)
+  } catch (e: any) {
+    return NextResponse.json({ error: 'Eroare la brand: ' + e.message }, { status: 500 })
+  }
 
   // Generez slug
-  const slug = name.toLowerCase()
-    .replace(/[ăâ]/g, 'a').replace(/[îí]/g, 'i')
-    .replace(/[șş]/g, 's').replace(/[țţ]/g, 't')
-    .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-    + '-' + Date.now()
+  const slug = slugify(name) + '-' + Date.now()
 
   // Inserez produsul
   const { data: product, error: productError } = await supabaseAdmin
