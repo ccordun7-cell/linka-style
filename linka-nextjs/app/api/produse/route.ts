@@ -3,6 +3,9 @@ import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { isAuthenticated } from '@/lib/auth'
 import { uploadImage } from '@/lib/cloudinary'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // GET - toate produsele (public)
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
