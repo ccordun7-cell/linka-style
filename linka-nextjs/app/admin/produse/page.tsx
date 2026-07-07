@@ -13,7 +13,7 @@ export default function ProdusePage() {
   useEffect(() => { loadProducts() }, [])
 
   const loadProducts = async () => {
-    const res = await fetch('/api/produse')
+    const res = await fetch('/api/produse', { cache: 'no-store' })
     const data = await res.json()
     setProducts(data || [])
     setLoading(false)
@@ -28,7 +28,9 @@ export default function ProdusePage() {
         alert(`Nu s-a putut ascunde produsul${err.error ? ': ' + err.error : ''}. Verifica daca esti inca logat (incearca sa reincarci pagina sau sa te loghezi din nou).`)
         return
       }
-      await loadProducts()
+      // Scot produsul imediat din lista locala, fara sa astept refetch (evita orice problema de cache)
+      setProducts(prev => prev.filter(p => p.id !== id))
+      loadProducts()
     } catch {
       alert('Eroare de conexiune. Incearca din nou.')
     }
