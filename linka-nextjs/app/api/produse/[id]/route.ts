@@ -10,12 +10,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const { name, price, description, category, is_barefoot, is_active, sizes, new_images } = body
 
   // Update produs
-  const { error: updateError } = await supabaseAdmin.from('products').update({
+  const { data: updateData, error: updateError } = await supabaseAdmin.from('products').update({
     name, price, description, category, is_barefoot, is_active
-  }).eq('id', params.id)
+  }).eq('id', params.id).select()
 
   if (updateError) {
     return NextResponse.json({ error: 'Eroare la actualizarea produsului: ' + updateError.message }, { status: 500 })
+  }
+  if (!updateData || updateData.length === 0) {
+    return NextResponse.json({
+      error: 'Produsul nu a fost modificat (0 randuri afectate). Cel mai probabil SUPABASE_SERVICE_ROLE_KEY din Vercel nu este cheia corecta (service_role) — verifica in Supabase: Settings > API > service_role secret, si compar-o cu variabila din Vercel > Settings > Environment Variables.'
+    }, { status: 500 })
   }
 
   // Update mărimi
@@ -62,9 +67,14 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!await isAuthenticated()) return NextResponse.json({ error: 'Neautorizat' }, { status: 401 })
 
   // Soft delete
-  const { error } = await supabaseAdmin.from('products').update({ is_active: false }).eq('id', params.id)
+  const { data, error } = await supabaseAdmin.from('products').update({ is_active: false }).eq('id', params.id).select()
   if (error) {
     return NextResponse.json({ error: 'Eroare la ascunderea produsului: ' + error.message }, { status: 500 })
+  }
+  if (!data || data.length === 0) {
+    return NextResponse.json({
+      error: 'Produsul nu a fost modificat (0 randuri afectate). Cel mai probabil SUPABASE_SERVICE_ROLE_KEY din Vercel nu este cheia corecta (service_role) — verifica in Supabase: Settings > API > service_role secret, si compar-o cu variabila din Vercel > Settings > Environment Variables.'
+    }, { status: 500 })
   }
   return NextResponse.json({ success: true })
 }
