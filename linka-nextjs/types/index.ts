@@ -8,6 +8,7 @@ export interface Brand {
 }
 
 export interface ProductImage {
+  id: string
   url: string
   position: number
 }
@@ -22,6 +23,7 @@ export interface Product {
   id: string
   slug: string
   name: string
+  name_ru?: string
   brand_id: string
   brand_name: string
   brand_slug: string
@@ -29,6 +31,7 @@ export interface Product {
   category: 'girls' | 'boys' | 'barefoot' | 'school'
   price: number
   description?: string
+  description_ru?: string
   is_barefoot: boolean
   is_premium: boolean
   is_sale: boolean
