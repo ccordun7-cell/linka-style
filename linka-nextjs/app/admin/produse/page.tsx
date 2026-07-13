@@ -106,11 +106,13 @@ function FormProdus({ product, onClose }: { product?: Product, onClose: () => vo
   const isEditing = !!product
   const [form, setForm] = useState({
     name: product?.name || '',
+    name_ru: product?.name_ru || '',
     brand_name: product?.brand_name || '',
     category: product?.category || 'girls',
     type: product?.type || 'sandale',
     price: product?.price ? String(product.price) : '',
     description: product?.description || '',
+    description_ru: product?.description_ru || '',
     is_barefoot: product?.is_barefoot || false
   })
   const [sizes, setSizes] = useState(
@@ -118,10 +120,28 @@ function FormProdus({ product, onClose }: { product?: Product, onClose: () => vo
       ? product.sizes.map((s: any) => ({ size: String(s.size), price: String(s.price), stock: String(s.stock) }))
       : [{ size: '', price: '', stock: '10' }]
   )
-  const [existingImages] = useState<string[]>(product?.images?.map((img: any) => img.url) || [])
+  const [existingImages, setExistingImages] = useState<{ id: string, url: string }[]>(
+    (product?.images || []).slice().sort((a: any, b: any) => a.position - b.position).map((img: any) => ({ id: img.id, url: img.url }))
+  )
+  const [deletedImageIds, setDeletedImageIds] = useState<string[]>([])
   const [images, setImages] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const moveImage = (index: number, direction: -1 | 1) => {
+    setExistingImages(prev => {
+      const next = prev.slice()
+      const target = index + direction
+      if (target < 0 || target >= next.length) return prev
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
+  }
+
+  const removeExistingImage = (id: string) => {
+    setExistingImages(prev => prev.filter(img => img.id !== id))
+    setDeletedImageIds(prev => [...prev, id])
+  }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -154,12 +174,16 @@ function FormProdus({ product, onClose }: { product?: Product, onClose: () => vo
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: form.name,
+            name_ru: form.name_ru,
             price: parseInt(form.price),
             description: form.description,
+            description_ru: form.description_ru,
             category: form.category,
             is_barefoot: form.is_barefoot,
             is_active: true,
             sizes: sizesPayload,
+            image_order: existingImages.map(img => img.id),
+            deleted_image_ids: deletedImageIds.length ? deletedImageIds : undefined,
             new_images: images.length ? images : undefined
           })
         })
@@ -199,8 +223,12 @@ function FormProdus({ product, onClose }: { product?: Product, onClose: () => vo
         <form onSubmit={handleSubmit}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
             <div className="form-group" style={{gridColumn:'1/-1'}}>
-              <label>Nume produs *</label>
+              <label>Nume produs (Română) *</label>
               <input className="form-control" value={form.name} onChange={e => setForm({...form,name:e.target.value})} placeholder="ex: Sandale fete Biomecanics roz" required />
+            </div>
+            <div className="form-group" style={{gridColumn:'1/-1'}}>
+              <label>Nume produs (Русский)</label>
+              <input className="form-control" value={form.name_ru} onChange={e => setForm({...form,name_ru:e.target.value})} placeholder="ex: Сандалии для девочек Biomecanics розовые" />
             </div>
             <div className="form-group">
               <label>Brand {isEditing ? '' : '*'}</label>
@@ -236,8 +264,12 @@ function FormProdus({ product, onClose }: { product?: Product, onClose: () => vo
               <label htmlFor="barefoot" style={{margin:0}}>Este produs Barefoot</label>
             </div>
             <div className="form-group" style={{gridColumn:'1/-1'}}>
-              <label>Descriere</label>
+              <label>Descriere (Română)</label>
               <textarea className="form-control" value={form.description} onChange={e => setForm({...form,description:e.target.value})} rows={3} placeholder="Descriere produs, materiale, caracteristici..." />
+            </div>
+            <div className="form-group" style={{gridColumn:'1/-1'}}>
+              <label>Descriere (Русский)</label>
+              <textarea className="form-control" value={form.description_ru} onChange={e => setForm({...form,description_ru:e.target.value})} rows={3} placeholder="Описание товара, материалы, характеристики..." />
             </div>
           </div>
 
@@ -258,20 +290,31 @@ function FormProdus({ product, onClose }: { product?: Product, onClose: () => vo
 
           {isEditing && existingImages.length > 0 && (
             <div className="form-group">
-              <label>Imagini curente</label>
-              <div style={{display:'flex',gap:'8px',flexWrap:'wrap',marginBottom:'10px'}}>
+              <label>Imagini curente — prima este poza de fata a produsului</label>
+              <div style={{display:'flex',gap:'10px',flexWrap:'wrap',marginBottom:'10px'}}>
                 {existingImages.map((img, i) => (
-                  <img key={i} src={img} style={{width:80,height:80,objectFit:'cover',borderRadius:8}} />
+                  <div key={img.id} style={{position:'relative', width:90}}>
+                    <img src={img.url} style={{width:90,height:90,objectFit:'cover',borderRadius:8,border: i===0 ? '2px solid #4AADE8' : '1px solid #e0e4ea'}} />
+                    {i === 0 && <span style={{position:'absolute',top:4,left:4,background:'#4AADE8',color:'white',fontSize:'9px',fontWeight:700,padding:'2px 6px',borderRadius:6}}>FAȚĂ</span>}
+                    <button type="button" onClick={() => removeExistingImage(img.id)}
+                      style={{position:'absolute',top:-6,right:-6,background:'#E84444',color:'white',border:'none',borderRadius:'50%',width:22,height:22,cursor:'pointer',fontSize:12,lineHeight:1}}>✕</button>
+                    <div style={{display:'flex',justifyContent:'center',gap:4,marginTop:4}}>
+                      <button type="button" disabled={i===0} onClick={() => moveImage(i,-1)}
+                        style={{fontSize:11,padding:'2px 8px',borderRadius:6,border:'1px solid #e0e4ea',background:i===0?'#f5f5f5':'white',cursor:i===0?'not-allowed':'pointer',color:i===0?'#ccc':'#1B2E4B'}}>◀</button>
+                      <button type="button" disabled={i===existingImages.length-1} onClick={() => moveImage(i,1)}
+                        style={{fontSize:11,padding:'2px 8px',borderRadius:6,border:'1px solid #e0e4ea',background:i===existingImages.length-1?'#f5f5f5':'white',cursor:i===existingImages.length-1?'not-allowed':'pointer',color:i===existingImages.length-1?'#ccc':'#1B2E4B'}}>▶</button>
+                    </div>
+                  </div>
                 ))}
               </div>
               <p style={{fontSize:'12px',color:'#6B7A90',marginBottom:'10px'}}>
-                Daca incarci imagini noi mai jos, acestea vor <strong>inlocui</strong> toate imaginile curente.
+                Foloseste săgețile ◀ ▶ ca să schimbi ordinea. Prima poză din stânga apare pe cardul produsului și în catalog.
               </p>
             </div>
           )}
 
           <div className="form-group">
-            <label>{isEditing ? 'Inlocuieste imaginile (optional)' : 'Imagini produs (max 3)'}</label>
+            <label>{isEditing ? 'Adaugă poze noi (opțional)' : 'Imagini produs (max 3)'}</label>
             <input type="file" accept="image/*" multiple onChange={handleImageUpload} style={{display:'block',marginBottom:'10px'}} />
             <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
               {images.map((img, i) => (
