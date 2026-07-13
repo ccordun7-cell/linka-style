@@ -7,11 +7,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!await isAuthenticated()) return NextResponse.json({ error: 'Neautorizat' }, { status: 401 })
 
   const body = await req.json()
-  const { name, price, description, category, is_barefoot, is_active, sizes, new_images } = body
+  const { name, name_ru, price, description, description_ru, category, is_barefoot, is_active, sizes, new_images, image_order, deleted_image_ids } = body
 
   // Update produs
   const { data: updateData, error: updateError } = await supabaseAdmin.from('products').update({
-    name, price, description, category, is_barefoot, is_active
+    name, name_ru, price, description, description_ru, category, is_barefoot, is_active
   }).eq('id', params.id).select()
 
   if (updateError) {
@@ -39,21 +39,35 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
   }
 
-  // Upload imagini noi
-  if (new_images?.length) {
-    // Șterg pozele vechi de pe Cloudinary
-    const { data: oldImages } = await supabaseAdmin.from('product_images').select('cloudinary_id').eq('product_id', params.id)
-    for (const img of oldImages || []) {
+  // Sterg pozele marcate individual pentru stergere (de pe Cloudinary + din baza de date)
+  if (deleted_image_ids?.length) {
+    const { data: toDelete } = await supabaseAdmin.from('product_images').select('id, cloudinary_id').in('id', deleted_image_ids)
+    for (const img of toDelete || []) {
       if (img.cloudinary_id) await deleteImage(img.cloudinary_id)
     }
-    const { error: deleteImagesError } = await supabaseAdmin.from('product_images').delete().eq('product_id', params.id)
+    const { error: deleteImagesError } = await supabaseAdmin.from('product_images').delete().in('id', deleted_image_ids)
     if (deleteImagesError) {
-      return NextResponse.json({ error: 'Eroare la stergerea pozelor vechi: ' + deleteImagesError.message }, { status: 500 })
+      return NextResponse.json({ error: 'Eroare la stergerea pozelor selectate: ' + deleteImagesError.message }, { status: 500 })
     }
+  }
 
+  // Actualizez ordinea pozelor existente (prima din lista = poza de fata a produsului)
+  let nextPosition = 0
+  if (image_order?.length) {
+    for (let i = 0; i < image_order.length; i++) {
+      const { error: reorderError } = await supabaseAdmin.from('product_images').update({ position: i }).eq('id', image_order[i])
+      if (reorderError) {
+        return NextResponse.json({ error: 'Eroare la reordonarea pozelor: ' + reorderError.message }, { status: 500 })
+      }
+    }
+    nextPosition = image_order.length
+  }
+
+  // Adaug pozele noi la final (nu mai sterg pozele existente)
+  if (new_images?.length) {
     for (let i = 0; i < new_images.length; i++) {
       const { url, cloudinary_id } = await uploadImage(new_images[i])
-      const { error: insertImageError } = await supabaseAdmin.from('product_images').insert({ product_id: params.id, url, cloudinary_id, position: i })
+      const { error: insertImageError } = await supabaseAdmin.from('product_images').insert({ product_id: params.id, url, cloudinary_id, position: nextPosition + i })
       if (insertImageError) {
         return NextResponse.json({ error: 'Eroare la salvarea pozei noi: ' + insertImageError.message }, { status: 500 })
       }
