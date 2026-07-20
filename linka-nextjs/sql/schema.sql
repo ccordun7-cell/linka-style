@@ -32,11 +32,13 @@ CREATE TABLE products (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   slug TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
+  name_ru TEXT,
   brand_id UUID REFERENCES brands(id),
   type TEXT NOT NULL DEFAULT 'pantofi',
   category TEXT NOT NULL CHECK (category IN ('girls', 'boys', 'barefoot', 'school')),
   price INTEGER NOT NULL,
   description TEXT,
+  description_ru TEXT,
   is_barefoot BOOLEAN DEFAULT FALSE,
   is_premium BOOLEAN DEFAULT FALSE,
   is_sale BOOLEAN DEFAULT FALSE,
@@ -86,6 +88,8 @@ CREATE TABLE orders (
   payment_method TEXT DEFAULT 'ramburs',
   total INTEGER NOT NULL,
   delivery_cost INTEGER DEFAULT 0,
+  promo_code TEXT,
+  discount_amount NUMERIC DEFAULT 0,
   status TEXT DEFAULT 'noua' CHECK (status IN ('noua', 'confirmata', 'in_livrare', 'livrata', 'anulata')),
   notes TEXT,
   telegram_sent BOOLEAN DEFAULT FALSE,
@@ -110,6 +114,24 @@ CREATE TABLE order_items (
 );
 
 -- =============================================
+-- TABELA: promo_codes
+-- =============================================
+CREATE TABLE promo_codes (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,
+  discount_type TEXT NOT NULL CHECK (discount_type IN ('percent', 'fixed')),
+  discount_value NUMERIC NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  usage_limit INTEGER,
+  used_count INTEGER DEFAULT 0,
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+-- Fara policy publica, intentionat: codurile promo se citesc/scriu DOAR prin
+-- API-ul Next.js (service_role, ocoleste RLS) — niciodata direct din browser.
+ALTER TABLE promo_codes ENABLE ROW LEVEL SECURITY;
+
+-- =============================================
 -- VIEWS utile
 -- =============================================
 CREATE VIEW products_full AS
@@ -118,26 +140,19 @@ SELECT
   b.name as brand_name,
   b.slug as brand_slug,
   b.country as brand_country,
-  COALESCE(
-    json_agg(
-      DISTINCT jsonb_build_object('url', pi.url, 'position', pi.position)
-      ORDER BY pi.position
-    ) FILTER (WHERE pi.id IS NOT NULL),
-    '[]'
-  ) as images,
-  COALESCE(
-    json_agg(
-      DISTINCT jsonb_build_object('size', ps.size, 'price', ps.price, 'stock', ps.stock_quantity)
-      ORDER BY ps.size
-    ) FILTER (WHERE ps.id IS NOT NULL),
-    '[]'
-  ) as sizes
+  COALESCE(img.images, '[]') as images,
+  COALESCE(sz.sizes, '[]') as sizes
 FROM products p
 LEFT JOIN brands b ON p.brand_id = b.id
-LEFT JOIN product_images pi ON pi.product_id = p.id
-LEFT JOIN product_sizes ps ON ps.product_id = p.id
-WHERE p.is_active = TRUE
-GROUP BY p.id, b.id;
+LEFT JOIN LATERAL (
+  SELECT json_agg(jsonb_build_object('id', pi.id, 'url', pi.url, 'position', pi.position) ORDER BY pi.position) as images
+  FROM product_images pi WHERE pi.product_id = p.id
+) img ON true
+LEFT JOIN LATERAL (
+  SELECT json_agg(jsonb_build_object('size', ps.size, 'price', ps.price, 'stock', ps.stock_quantity) ORDER BY ps.size) as sizes
+  FROM product_sizes ps WHERE ps.product_id = p.id
+) sz ON true
+WHERE p.is_active = TRUE;
 
 -- View pentru dashboard admin
 CREATE VIEW orders_with_items AS
@@ -174,8 +189,10 @@ CREATE POLICY "Marimi vizibile public" ON product_sizes FOR SELECT USING (TRUE);
 CREATE POLICY "Branduri vizibile public" ON brands FOR SELECT USING (TRUE);
 
 -- Comenzile: oricine poate insera, admin poate citi tot
-CREATE POLICY "Oricine poate comanda" ON orders FOR INSERT WITH CHECK (TRUE);
-CREATE POLICY "Oricine poate adauga produse in comanda" ON order_items FOR INSERT WITH CHECK (TRUE);
+-- SECURITATE: am eliminat inserarea publica directa pe orders/order_items.
+-- Comenzile trec ACUM exclusiv prin /api/comenzi (foloseste service_role, ocoleste RLS),
+-- care recalculeaza preturile din baza de date si nu are incredere in ce trimite clientul.
+-- Inainte, oricine putea insera direct in Supabase cu cheia publica, cu orice pret dorea.
 
 -- Admin prin service role poate face orice (bypass RLS)
 -- Service role key are acces complet automat
