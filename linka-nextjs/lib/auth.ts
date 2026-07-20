@@ -1,7 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 
-const secret = new TextEncoder().encode(process.env.ADMIN_JWT_SECRET || 'fallback-secret-schimba')
+// SECURITATE: fara secret real, aplicatia NU trebuie sa porneasca — altfel oricine
+// putea semna un token admin valid folosind secretul implicit, cunoscut public in cod.
+if (!process.env.ADMIN_JWT_SECRET) {
+  throw new Error('ADMIN_JWT_SECRET lipseste din variabilele de mediu. Seteaz-o in Vercel > Settings > Environment Variables inainte de a porni aplicatia.')
+}
+const secret = new TextEncoder().encode(process.env.ADMIN_JWT_SECRET)
 
 export async function createToken() {
   return await new SignJWT({ role: 'admin' })
