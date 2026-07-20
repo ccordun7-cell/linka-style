@@ -1,13 +1,12 @@
-import nodemailer from 'nodemailer'
+import sgMail from '@sendgrid/mail'
 import { Order } from '@/types'
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_FROM,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-})
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+}
+
+const SENDER_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'ccordun7@gmail.com'
+const REPLY_TO_EMAIL = process.env.SENDGRID_REPLY_TO || 'mobilife16@gmail.com'
 
 export async function sendOrderConfirmationToClient(order: Order) {
   const itemsHtml = order.items?.map(item =>
@@ -18,8 +17,14 @@ export async function sendOrderConfirmationToClient(order: Order) {
     </tr>`
   ).join('')
 
-  await transporter.sendMail({
-    from: `"Linka Style" <${process.env.EMAIL_FROM}>`,
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error('SENDGRID_API_KEY lipsește — email de confirmare comandă nu a fost trimis.')
+    return
+  }
+
+  await sgMail.send({
+    from: { email: SENDER_EMAIL, name: 'Linka Style' },
+    replyTo: REPLY_TO_EMAIL,
     to: order.customer_email,
     subject: `✅ Comanda #${order.order_number} confirmată — Linka Style`,
     html: `
