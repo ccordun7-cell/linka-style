@@ -1,29 +1,54 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Script from 'next/script'
+
+declare global {
+  interface Window {
+    onTurnstileSuccess?: (token: string) => void
+    turnstile?: { reset: () => void }
+  }
+}
 
 export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState('')
   const router = useRouter()
+
+  useEffect(() => {
+    window.onTurnstileSuccess = (token: string) => setTurnstileToken(token)
+    return () => { window.onTurnstileSuccess = undefined }
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!turnstileToken) {
+      setError('Te rugam sa astepti verificarea de securitate sa se incarce.')
+      return
+    }
     setLoading(true)
     setError('')
     const res = await fetch('/api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password })
+      body: JSON.stringify({ password, turnstileToken })
     })
     if (res.ok) { router.push('/admin') }
-    else { setError('Parola incorecta. Incearca din nou.') }
+    else {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error || 'Parola incorecta. Incearca din nou.')
+      // token-ul se poate folosi o singura data - resetam widget-ul pentru urmatoarea incercare
+      setTurnstileToken('')
+      if (window.turnstile) window.turnstile.reset()
+    }
     setLoading(false)
   }
 
   return (
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#f0f4f8'}}>
+      <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" async defer />
       <div style={{background:'white',borderRadius:'20px',padding:'40px',width:'100%',maxWidth:'400px',boxShadow:'0 8px 32px rgba(0,0,0,.12)'}}>
         <div style={{textAlign:'center',marginBottom:'32px'}}>
           <h1 style={{fontSize:'24px',fontWeight:900,color:'#1B2E4B'}}>Linka<span style={{color:'#4AADE8'}}>Style</span></h1>
@@ -35,8 +60,14 @@ export default function LoginPage() {
             <input type="password" className="form-control" value={password}
               onChange={e => setPassword(e.target.value)} placeholder="Introdu parola..." autoFocus />
           </div>
+          <div
+            className="cf-turnstile"
+            data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+            data-callback="onTurnstileSuccess"
+            style={{ margin: '16px 0' }}
+          />
           {error && <div style={{background:'#ffebee',color:'#c62828',padding:'10px 14px',borderRadius:'8px',fontSize:'13px',marginBottom:'16px'}}>{error}</div>}
-          <button type="submit" className="btn-primary" style={{width:'100%',justifyContent:'center',padding:'14px'}} disabled={loading}>
+          <button type="submit" className="btn-primary" style={{width:'100%',justifyContent:'center',padding:'14px'}} disabled={loading || !turnstileToken}>
             {loading ? 'Se verifica...' : 'Intra in panou'}
           </button>
         </form>
