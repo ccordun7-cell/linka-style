@@ -131,6 +131,15 @@ CREATE TABLE promo_codes (
 -- API-ul Next.js (service_role, ocoleste RLS) — niciodata direct din browser.
 ALTER TABLE promo_codes ENABLE ROW LEVEL SECURITY;
 
+-- Limitare incercari de login admin (rate limiting), adaugata migrarea 005
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  ip TEXT NOT NULL,
+  attempted_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_ip_time ON login_attempts (ip, attempted_at);
+ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;
+
 -- =============================================
 -- VIEWS utile
 -- =============================================
