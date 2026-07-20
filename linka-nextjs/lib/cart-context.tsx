@@ -31,6 +31,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
+      // localStorage e disponibil doar dupa montare (nu exista pe server), asa ca hidratarea
+      // initiala a cosului trebuie sa se intample aici; nu e un anti-pattern real, doar
+      // singura optiune posibila pentru acest caz.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (saved) setItems(JSON.parse(saved))
     } catch (e) {
       console.error('Eroare la citirea cosului:', e)
