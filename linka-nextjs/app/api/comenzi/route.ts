@@ -16,6 +16,13 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: corsHeaders })
 }
 
+const MAX_ORDER_ATTEMPTS = 8
+const ORDER_WINDOW_MINUTES = 30
+
+function getClientIp(req: NextRequest): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+}
+
 // GET - toate comenzile (admin)
 export async function GET(req: NextRequest) {
   if (!await isAuthenticated()) return NextResponse.json({ error: 'Neautorizat' }, { status: 401 })
@@ -32,6 +39,30 @@ export async function GET(req: NextRequest) {
 
 // POST - comandă nouă (public)
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req)
+  const windowStart = new Date(Date.now() - ORDER_WINDOW_MINUTES * 60 * 1000).toISOString()
+
+  // Verifica numarul de comenzi recente de pe aceasta adresa IP
+  const { count, error: countError } = await supabaseAdmin
+    .from('order_attempts')
+    .select('id', { count: 'exact', head: true })
+    .eq('ip', ip)
+    .gte('attempted_at', windowStart)
+
+  // Daca tabelul nu exista inca (migrarea 006 nu a fost rulata), nu blocam
+  // comanda din cauza asta - doar sarim peste limitare pentru aceasta cerere
+  if (!countError && (count ?? 0) >= MAX_ORDER_ATTEMPTS) {
+    return NextResponse.json(
+      { error: `Prea multe comenzi de pe aceasta adresa. Incearca din nou peste ${ORDER_WINDOW_MINUTES} minute, sau contacteaza-ne direct.` },
+      { status: 429, headers: corsHeaders }
+    )
+  }
+
+  // Inregistram incercarea INAINTE de a valida datele, ca sa numaram si
+  // incercarile respinse (asta e tot rostul limitarii). Nu blocam comanda
+  // daca insert-ul esueaza (ex. tabelul nu exista inca).
+  await supabaseAdmin.from('order_attempts').insert({ ip }).then(() => {}, () => {})
+
   const body = await req.json()
   const { customer_name, customer_phone, customer_email, delivery_address, delivery_city, payment_method, items, promo_code } = body
 
