@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: linka-nextjs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: linka-nextjs/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        # Valorile de mai jos NU sunt secrete reale — sunt doar placeholder-uri
+        # ca sa treaca build-ul in CI. Build-ul real, cu cheile adevarate, se
+        # face separat pe Vercel la fiecare deploy.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          SUPABASE_SERVICE_ROLE_KEY: placeholder
+          ADMIN_JWT_SECRET: placeholder-ci-secret
+          ADMIN_PASSWORD: placeholder
+          SENDGRID_API_KEY: placeholder
+          NEXT_PUBLIC_RECAPTCHA_SITE_KEY: placeholder
+          RECAPTCHA_SECRET_KEY: placeholder
+        run: npm run build
