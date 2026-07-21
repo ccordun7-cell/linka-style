@@ -16,14 +16,14 @@ export default function ComenziPage() {
   const [filter, setFilter] = useState('all')
   const [selected, setSelected] = useState<any>(null)
 
-  useEffect(() => { loadOrders() }, [])
-
   const loadOrders = async () => {
     const res = await fetch('/api/comenzi')
     const data = await res.json()
     setOrders(data || [])
     setLoading(false)
   }
+
+  useEffect(() => { loadOrders() }, [])
 
   const updateStatus = async (id: string, status: string) => {
     await fetch(`/api/comenzi/${id}`, {

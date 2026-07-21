@@ -10,14 +10,14 @@ export default function ProdusePage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [search, setSearch] = useState('')
 
-  useEffect(() => { loadProducts() }, [])
-
   const loadProducts = async () => {
     const res = await fetch('/api/produse', { cache: 'no-store' })
     const data = await res.json()
     setProducts(data || [])
     setLoading(false)
   }
+
+  useEffect(() => { loadProducts() }, [])
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Sigur vrei sa ascunzi produsul "${name}"?`)) return

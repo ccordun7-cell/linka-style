@@ -14,8 +14,6 @@ export default function DescrieriPage() {
   const [rowState, setRowState] = useState<Record<string, RowState>>({})
   const [savingAll, setSavingAll] = useState(false)
 
-  useEffect(() => { loadProducts() }, [])
-
   const loadProducts = async () => {
     setLoading(true)
     const res = await fetch('/api/produse')
@@ -27,6 +25,8 @@ export default function DescrieriPage() {
     setRowState({})
     setLoading(false)
   }
+
+  useEffect(() => { loadProducts() }, [])
 
   const brands = Array.from(new Set(products.map(p => p.brand_name).filter(Boolean))).sort()
 

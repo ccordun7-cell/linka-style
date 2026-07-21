@@ -14,8 +14,6 @@ export default function BranduriPage() {
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  useEffect(() => { loadBrands() }, [])
-
   const loadBrands = async () => {
     setLoading(true)
     const res = await fetch('/api/branduri')
@@ -23,6 +21,8 @@ export default function BranduriPage() {
     setBrands(data || [])
     setLoading(false)
   }
+
+  useEffect(() => { loadBrands() }, [])
 
   const handleDelete = async (brand: Brand) => {
     if (!confirm(`Sigur vrei sa stergi brandul "${brand.name}"? Aceasta actiune nu poate fi anulata.`)) return
