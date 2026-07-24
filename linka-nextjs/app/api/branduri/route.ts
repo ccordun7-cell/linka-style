@@ -1,10 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { isAuthenticated } from '@/lib/auth'
+import { findOrCreateBrand } from '@/lib/brands'
 
 export async function GET() {
   const { data } = await supabase.from('brands').select('*').order('name')
   return NextResponse.json(data || [])
+}
+
+// POST - creeaza un brand nou direct, fara sa fie nevoie de un produs
+export async function POST(req: NextRequest) {
+  if (!await isAuthenticated()) return NextResponse.json({ error: 'Neautorizat' }, { status: 401 })
+
+  const { name } = await req.json()
+  if (!name || !name.trim()) {
+    return NextResponse.json({ error: 'Numele brandului este obligatoriu' }, { status: 400 })
+  }
+
+  try {
+    const id = await findOrCreateBrand(name)
+    return NextResponse.json({ success: true, id })
+  } catch (e: any) {
+    return NextResponse.json({ error: 'Eroare la crearea brandului: ' + e.message }, { status: 500 })
+  }
 }
 
 // DELETE - sterge un brand, dar DOAR daca nu are niciun produs asociat (siguranta)

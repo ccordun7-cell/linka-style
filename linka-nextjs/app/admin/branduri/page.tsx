@@ -13,6 +13,9 @@ export default function BranduriPage() {
   const [brands, setBrands] = useState<Brand[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [newBrandName, setNewBrandName] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState('')
 
   const loadBrands = async () => {
     setLoading(true)
@@ -23,6 +26,31 @@ export default function BranduriPage() {
   }
 
   useEffect(() => { loadBrands() }, [])
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newBrandName.trim()) return
+    setAdding(true)
+    setAddError('')
+    try {
+      const res = await fetch('/api/branduri', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newBrandName.trim() })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setAddError(data.error || 'Nu s-a putut adauga brandul.')
+        return
+      }
+      setNewBrandName('')
+      await loadBrands()
+    } catch {
+      setAddError('Eroare de conexiune. Incearca din nou.')
+    } finally {
+      setAdding(false)
+    }
+  }
 
   const handleDelete = async (brand: Brand) => {
     if (!confirm(`Sigur vrei sa stergi brandul "${brand.name}"? Aceasta actiune nu poate fi anulata.`)) return
@@ -47,6 +75,23 @@ export default function BranduriPage() {
       <p style={{ fontSize: '13px', color: '#6B7A90', marginBottom: '16px' }}>
         Poti sterge doar brandurile care nu au niciun produs asociat — e o masura de siguranta, ca sa nu stergi din greseala un brand folosit.
       </p>
+
+      <div className="admin-card" style={{ marginBottom: '20px' }}>
+        <form onSubmit={handleAdd} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            <input
+              className="form-control"
+              placeholder="Nume brand nou, ex: Pablosky"
+              value={newBrandName}
+              onChange={e => setNewBrandName(e.target.value)}
+            />
+            {addError && <p style={{ color: '#c62828', fontSize: '12px', marginTop: '6px' }}>{addError}</p>}
+          </div>
+          <button className="btn-primary" type="submit" disabled={adding || !newBrandName.trim()}>
+            {adding ? 'Se adauga...' : 'Adauga brand'}
+          </button>
+        </form>
+      </div>
 
       <div className="admin-card">
         {loading ? (
