@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     const result = await sendNewsletterBlast(subject.trim(), message.trim(), subscribers.map(s => s.email))
     return NextResponse.json({ success: true, sent: result.sent })
   } catch (e: any) {
-    return NextResponse.json({ error: 'Eroare la trimitere: ' + e.message }, { status: 500 })
+    const sgDetails = e?.response?.body?.errors?.map((err: any) => err.message).join('; ')
+    return NextResponse.json({ error: 'Eroare la trimitere: ' + (sgDetails || e.message) }, { status: 500 })
   }
 }
