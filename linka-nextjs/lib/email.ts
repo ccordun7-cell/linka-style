@@ -113,6 +113,48 @@ export async function sendReturnRequestNotificationToAdmin(req: ReturnRequest) {
   ))
 }
 
+export async function sendNewsletterBlast(subject: string, message: string, recipients: string[]) {
+  if (!process.env.SENDGRID_API_KEY) {
+    throw new Error('SENDGRID_API_KEY lipsește — nu se poate trimite.')
+  }
+  if (!recipients.length) return { sent: 0 }
+
+  // Fiecare destinatar isi vede doar propria adresa (personalizations separate),
+  // nu o lista comuna vizibila tuturor.
+  const messageHtml = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+      <div style="background:#4AADE8;padding:24px;text-align:center">
+        <h1 style="color:white;margin:0">Linka Style</h1>
+      </div>
+      <div style="padding:24px">
+        ${message.split('\n').map(line => `<p style="margin:0 0 12px;color:#33475b;font-size:15px;line-height:1.6">${line}</p>`).join('')}
+        <div style="background:#f9f9f9;padding:16px;border-radius:8px;margin-top:24px">
+          <p style="margin:0;color:#666;font-size:12px">
+            Primești acest email pentru că ești abonat la newsletter-ul Linka Style.<br>
+            Întrebări? Scrie-ne: <a href="mailto:info@linkastyle.com">info@linkastyle.com</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  `
+
+  // SendGrid accepta pana la 1000 de personalizations intr-un singur apel
+  const BATCH_SIZE = 900
+  let sent = 0
+  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+    const batch = recipients.slice(i, i + BATCH_SIZE)
+    await sgMail.send({
+      from: { email: SENDER_EMAIL, name: 'Linka Style' },
+      replyTo: REPLY_TO_EMAIL,
+      subject,
+      html: messageHtml,
+      personalizations: batch.map(email => ({ to: [{ email }] }))
+    } as any)
+    sent += batch.length
+  }
+  return { sent }
+}
+
 export async function sendReturnRequestConfirmationToClient(req: ReturnRequest) {
   if (!req.customer_email || !process.env.SENDGRID_API_KEY) return
 
