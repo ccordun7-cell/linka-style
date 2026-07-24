@@ -8,6 +8,7 @@ const menuItems = [
   { href: '/admin/produse/descrieri', label: 'Descrieri', icon: '📝' },
   { href: '/admin/branduri', label: 'Branduri', icon: '🏷️' },
   { href: '/admin/comenzi', label: 'Comenzi', icon: '📦' },
+  { href: '/admin/retururi', label: 'Retururi', icon: '🔄' },
   { href: '/admin/setari', label: 'Setari', icon: '⚙️' },
 ]
 

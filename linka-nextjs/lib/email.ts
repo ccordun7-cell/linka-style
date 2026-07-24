@@ -1,5 +1,5 @@
 import sgMail from '@sendgrid/mail'
-import { Order } from '@/types'
+import { Order, ReturnRequest } from '@/types'
 
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY)
@@ -90,4 +90,53 @@ export async function sendOrderNotificationToAdmin(order: Order) {
       body: JSON.stringify({ chat_id: chatId.trim(), text: msg, parse_mode: 'Markdown' })
     })
   ))
+}
+
+export async function sendReturnRequestNotificationToAdmin(req: ReturnRequest) {
+  const msg = `🔄 *CERERE DE RETUR — Linka Style*\n\n` +
+    `📦 *Comanda:* #${req.order_number}\n` +
+    `👤 *Client:* ${req.customer_name}\n` +
+    `📞 *Telefon:* ${req.customer_phone}\n` +
+    `✉️ *Email:* ${req.customer_email || 'Neindicat'}\n\n` +
+    `📝 *Motiv:* ${req.reason}\n` +
+    `💳 *Metoda rambursare:* ${req.refund_method || 'Neindicata'}\n` +
+    (req.bank_details ? `🏦 *Detalii cont:* ${req.bank_details}\n` : '') +
+    `\n🕐 *Ora:* ${new Date().toLocaleString('ro-MD')}`
+
+  const chatIds = process.env.TELEGRAM_CHAT_IDS?.split(',') || []
+  await Promise.all(chatIds.map(chatId =>
+    fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId.trim(), text: msg, parse_mode: 'Markdown' })
+    })
+  ))
+}
+
+export async function sendReturnRequestConfirmationToClient(req: ReturnRequest) {
+  if (!req.customer_email || !process.env.SENDGRID_API_KEY) return
+
+  await sgMail.send({
+    from: { email: SENDER_EMAIL, name: 'Linka Style' },
+    replyTo: REPLY_TO_EMAIL,
+    to: req.customer_email,
+    subject: `Am primit cererea ta de retur pentru comanda #${req.order_number} — Linka Style`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#4AADE8;padding:24px;text-align:center">
+          <h1 style="color:white;margin:0">Linka Style</h1>
+        </div>
+        <div style="padding:24px">
+          <h2>Am primit cererea ta de retur, ${req.customer_name}!</h2>
+          <p>Pentru comanda <strong>#${req.order_number}</strong>, motiv: ${req.reason}.</p>
+          <p>Te vom contacta la <strong>${req.customer_phone}</strong> în cel mai scurt timp, cu pașii următori.</p>
+          <div style="background:#f9f9f9;padding:16px;border-radius:8px;margin-top:20px">
+            <p style="margin:0;color:#666;font-size:13px">
+              Întrebări? Sună la 061 299 950 sau scrie-ne: <a href="mailto:info@linkastyle.com">info@linkastyle.com</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    `
+  })
 }

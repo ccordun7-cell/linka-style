@@ -79,6 +79,19 @@ export interface OrderItem {
   quantity: number
 }
 
+export interface ReturnRequest {
+  id: string
+  order_number: string
+  customer_name: string
+  customer_phone: string
+  customer_email?: string
+  reason: string
+  refund_method?: string
+  bank_details?: string
+  status: 'noua' | 'in_procesare' | 'finalizata' | 'respinsa'
+  created_at: string
+}
+
 export interface DashboardStats {
   total_orders: number
   orders_today: number
