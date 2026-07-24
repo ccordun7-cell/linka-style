@@ -3,6 +3,13 @@ import { useEffect, useState } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Product } from '@/types'
 
+// Conversie marime EU -> lungime talpa in cm, dupa standardul "Paris point"
+// (fiecare marime EU = ~0.667cm), acelasi calcul ca pe site (index.html).
+function sizeToCm(size: number): number {
+  if (!size || isNaN(size)) return 0
+  return Math.round((12.3 + (size - 20) * (2 / 3)) * 10) / 10
+}
+
 export default function ProdusePage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -314,9 +321,11 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
 
           <div style={{marginBottom:'20px'}}>
             <label style={{display:'block',fontSize:'13px',fontWeight:700,color:'#6B7A90',marginBottom:'10px'}}>Marimi si preturi</label>
+            <p style={{fontSize:'12px',color:'#6B7A90',marginBottom:'8px'}}>Lungimea in cm se calculeaza automat, dupa standardul EU (~0.67cm per marime).</p>
             {sizes.map((s, i) => (
-              <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr auto',gap:'8px',marginBottom:'8px'}}>
+              <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 60px 1fr 1fr auto',gap:'8px',marginBottom:'8px',alignItems:'center'}}>
                 <input className="form-control" type="number" placeholder="Marime EU" value={s.size} onChange={e => { const n = [...sizes]; n[i].size = e.target.value; setSizes(n) }} />
+                <span style={{fontSize:'12px',color:'#6B7A90',textAlign:'center'}}>{s.size ? `${sizeToCm(parseInt(s.size))} cm` : '—'}</span>
                 <input className="form-control" type="number" placeholder="Pret MDL" value={s.price} onChange={e => { const n = [...sizes]; n[i].price = e.target.value; setSizes(n) }} />
                 <input className="form-control" type="number" placeholder="Stoc" value={s.stock} onChange={e => { const n = [...sizes]; n[i].stock = e.target.value; setSizes(n) }} />
                 <button type="button" onClick={() => setSizes(sizes.filter((_,j) => j !== i))} style={{background:'#ffebee',border:'none',borderRadius:'8px',padding:'0 12px',color:'#c62828',cursor:'pointer'}}>✕</button>
