@@ -9,10 +9,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params
   const body = await req.json()
-  const { name, name_ru, brand_name, price, description, description_ru, category, is_barefoot, is_active, sizes, new_images, image_order, deleted_image_ids } = body
+  const { name, name_ru, brand_name, price, description, description_ru, category, is_barefoot, is_sale, sale_price, is_active, sizes, new_images, image_order, deleted_image_ids } = body
 
   const updatePayload: Record<string, unknown> = {
-    name, name_ru, price, description, description_ru, category, is_barefoot, is_active
+    name, name_ru, price, description, description_ru, category, is_barefoot, is_active,
+    is_sale: !!is_sale, sale_price: is_sale ? sale_price : null
   }
 
   // Daca s-a trimis un nume de brand, il caut/creez si actualizez legatura produsului

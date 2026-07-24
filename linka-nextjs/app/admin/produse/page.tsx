@@ -83,7 +83,14 @@ export default function ProdusePage() {
                     <td style={{padding:'10px',fontSize:'13px'}}>
                       {p.category === 'girls' ? 'Fete' : p.category === 'boys' ? 'Baieti' : p.category === 'barefoot' ? 'Barefoot' : 'Scoala'}
                     </td>
-                    <td style={{padding:'10px',fontWeight:700}}>{p.price} MDL</td>
+                    <td style={{padding:'10px',fontWeight:700}}>
+                      {p.is_sale && p.sale_price ? (
+                        <>
+                          <span style={{textDecoration:'line-through',color:'#999',fontWeight:400,fontSize:'12px',marginRight:'6px'}}>{p.price} MDL</span>
+                          <span style={{color:'#ff6b35'}}>{p.sale_price} MDL</span>
+                        </>
+                      ) : `${p.price} MDL`}
+                    </td>
                     <td style={{padding:'10px',fontSize:'12px',color:'#6B7A90'}}>
                       {p.sizes?.map((s: any) => s.size).join(', ')}
                     </td>
@@ -117,7 +124,9 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
     price: product?.price ? String(product.price) : '',
     description: product?.description || '',
     description_ru: product?.description_ru || '',
-    is_barefoot: product?.is_barefoot || false
+    is_barefoot: product?.is_barefoot || false,
+    is_sale: product?.is_sale || false,
+    sale_price: product?.sale_price ? String(product.sale_price) : ''
   })
   const [sizes, setSizes] = useState(
     product?.sizes?.length
@@ -164,6 +173,10 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
       setError('Completeaza toate campurile obligatorii!')
       return
     }
+    if (form.is_sale && (!form.sale_price || parseInt(form.sale_price) >= parseInt(form.price))) {
+      setError('Pretul redus trebuie completat si sa fie mai mic decat pretul normal!')
+      return
+    }
     setError('')
     setLoading(true)
     try {
@@ -185,6 +198,8 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
             description_ru: form.description_ru,
             category: form.category,
             is_barefoot: form.is_barefoot,
+            is_sale: form.is_sale,
+            sale_price: form.is_sale ? parseInt(form.sale_price) : null,
             is_active: true,
             sizes: sizesPayload,
             image_order: existingImages.map(img => img.id),
@@ -199,6 +214,7 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
           body: JSON.stringify({
             ...form,
             price: parseInt(form.price),
+            sale_price: form.is_sale ? parseInt(form.sale_price) : null,
             sizes: sizesPayload,
             images
           })
@@ -271,6 +287,21 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
               <input type="checkbox" id="barefoot" checked={form.is_barefoot} onChange={e => setForm({...form,is_barefoot:e.target.checked})} />
               <label htmlFor="barefoot" style={{margin:0}}>Este produs Barefoot</label>
             </div>
+            <div className="form-group" style={{gridColumn:'1/-1',display:'flex',alignItems:'center',gap:'10px'}}>
+              <input type="checkbox" id="sale" checked={form.is_sale} onChange={e => setForm({...form,is_sale:e.target.checked})} />
+              <label htmlFor="sale" style={{margin:0}}>La reducere</label>
+            </div>
+            {form.is_sale && (
+              <div className="form-group" style={{gridColumn:'1/-1'}}>
+                <label>Pret redus (MDL) *</label>
+                <input type="number" className="form-control" value={form.sale_price} onChange={e => setForm({...form,sale_price:e.target.value})} placeholder="mai mic decat pretul de baza" />
+                {form.price && form.sale_price && parseInt(form.sale_price) < parseInt(form.price) && (
+                  <p style={{fontSize:'12px',color:'#1A8A50',marginTop:'4px'}}>
+                    -{Math.round((1 - parseInt(form.sale_price) / parseInt(form.price)) * 100)}% reducere
+                  </p>
+                )}
+              </div>
+            )}
             <div className="form-group" style={{gridColumn:'1/-1'}}>
               <label>Descriere (Română)</label>
               <textarea className="form-control" value={form.description} onChange={e => setForm({...form,description:e.target.value})} rows={3} placeholder="Descriere produs, materiale, caracteristici..." />
