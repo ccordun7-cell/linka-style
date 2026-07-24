@@ -41,6 +41,10 @@ export default function ProdusePage() {
     p.brand_name?.toLowerCase().includes(search.toLowerCase())
   )
 
+  const uniqueBrands = Array.from(new Set(products.map(p => p.brand_name).filter(Boolean)))
+    .sort()
+    .map(name => ({ id: name as string, name: name as string }))
+
   return (
     <AdminLayout title="Produse">
       <div style={{display:'flex',gap:'12px',marginBottom:'20px',flexWrap:'wrap'}}>
@@ -52,8 +56,8 @@ export default function ProdusePage() {
         </button>
       </div>
 
-      {showForm && <FormProdus onClose={() => { setShowForm(false); loadProducts() }} />}
-      {editingProduct && <FormProdus product={editingProduct} onClose={() => { setEditingProduct(null); loadProducts() }} />}
+      {showForm && <FormProdus onClose={() => { setShowForm(false); loadProducts() }} existingBrands={uniqueBrands} />}
+      {editingProduct && <FormProdus product={editingProduct} onClose={() => { setEditingProduct(null); loadProducts() }} existingBrands={uniqueBrands} />}
 
       <div className="admin-card">
         <div style={{marginBottom:'12px',color:'#6B7A90',fontSize:'13px'}}>{filtered.length} produse</div>
@@ -102,7 +106,7 @@ export default function ProdusePage() {
   )
 }
 
-function FormProdus({ product, onClose }: { product?: Product, onClose: () => void }) {
+function FormProdus({ product, onClose, existingBrands }: { product?: Product, onClose: () => void, existingBrands: { id: string, name: string }[] }) {
   const isEditing = !!product
   const [form, setForm] = useState({
     name: product?.name || '',
@@ -156,7 +160,7 @@ function FormProdus({ product, onClose }: { product?: Product, onClose: () => vo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name || (!isEditing && !form.brand_name) || !form.price) {
+    if (!form.name || !form.brand_name || !form.price) {
       setError('Completeaza toate campurile obligatorii!')
       return
     }
@@ -175,6 +179,7 @@ function FormProdus({ product, onClose }: { product?: Product, onClose: () => vo
           body: JSON.stringify({
             name: form.name,
             name_ru: form.name_ru,
+            brand_name: form.brand_name,
             price: parseInt(form.price),
             description: form.description,
             description_ru: form.description_ru,
@@ -231,10 +236,13 @@ function FormProdus({ product, onClose }: { product?: Product, onClose: () => vo
               <input className="form-control" value={form.name_ru} onChange={e => setForm({...form,name_ru:e.target.value})} placeholder="ex: Сандалии для девочек Biomecanics розовые" />
             </div>
             <div className="form-group">
-              <label>Brand {isEditing ? '' : '*'}</label>
+              <label>Brand *</label>
               <input className="form-control" value={form.brand_name} onChange={e => setForm({...form,brand_name:e.target.value})}
-                placeholder="ex: Biomecanics" required={!isEditing} disabled={isEditing}
-                title={isEditing ? 'Brandul nu poate fi schimbat aici' : ''} />
+                placeholder="ex: Biomecanics" required list="branduri-existente" />
+              <datalist id="branduri-existente">
+                {existingBrands.map(b => <option key={b.id} value={b.name} />)}
+              </datalist>
+              {isEditing && <p style={{fontSize:'12px',color:'#6B7A90',marginTop:'4px'}}>Daca schimbi brandul, produsul se muta automat la noul brand (il creeaza daca nu exista deja).</p>}
             </div>
             <div className="form-group">
               <label>Categorie *</label>

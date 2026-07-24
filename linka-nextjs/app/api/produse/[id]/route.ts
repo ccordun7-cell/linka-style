@@ -2,18 +2,30 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { isAuthenticated } from '@/lib/auth'
 import { deleteImage, uploadImage } from '@/lib/cloudinary'
+import { findOrCreateBrand } from '@/lib/brands'
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!await isAuthenticated()) return NextResponse.json({ error: 'Neautorizat' }, { status: 401 })
 
   const { id } = await params
   const body = await req.json()
-  const { name, name_ru, price, description, description_ru, category, is_barefoot, is_active, sizes, new_images, image_order, deleted_image_ids } = body
+  const { name, name_ru, brand_name, price, description, description_ru, category, is_barefoot, is_active, sizes, new_images, image_order, deleted_image_ids } = body
+
+  const updatePayload: Record<string, unknown> = {
+    name, name_ru, price, description, description_ru, category, is_barefoot, is_active
+  }
+
+  // Daca s-a trimis un nume de brand, il caut/creez si actualizez legatura produsului
+  if (brand_name && brand_name.trim()) {
+    try {
+      updatePayload.brand_id = await findOrCreateBrand(brand_name)
+    } catch (e: any) {
+      return NextResponse.json({ error: 'Eroare la brand: ' + e.message }, { status: 500 })
+    }
+  }
 
   // Update produs
-  const { data: updateData, error: updateError } = await supabaseAdmin.from('products').update({
-    name, name_ru, price, description, description_ru, category, is_barefoot, is_active
-  }).eq('id', id).select()
+  const { data: updateData, error: updateError } = await supabaseAdmin.from('products').update(updatePayload).eq('id', id).select()
 
   if (updateError) {
     return NextResponse.json({ error: 'Eroare la actualizarea produsului: ' + updateError.message }, { status: 500 })

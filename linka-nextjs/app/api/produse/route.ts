@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { isAuthenticated } from '@/lib/auth'
 import { uploadImage } from '@/lib/cloudinary'
+import { findOrCreateBrand, slugify } from '@/lib/brands'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -24,36 +25,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(data)
 }
 
-// Genereaza un slug simplu dintr-un text (nume brand, nume produs etc)
-function slugify(text: string) {
-  return text.toLowerCase()
-    .replace(/[ăâ]/g, 'a').replace(/[îí]/g, 'i')
-    .replace(/[șş]/g, 's').replace(/[țţ]/g, 't')
-    .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-}
-
-// Gaseste brandul dupa nume (case-insensitive) sau il creeaza daca nu exista
-async function findOrCreateBrand(brandName: string): Promise<string> {
-  const cleanName = brandName.trim()
-  const slug = slugify(cleanName)
-
-  const { data: existing } = await supabaseAdmin
-    .from('brands')
-    .select('id')
-    .ilike('name', cleanName)
-    .maybeSingle()
-
-  if (existing) return existing.id
-
-  const { data: created, error } = await supabaseAdmin
-    .from('brands')
-    .insert({ slug, name: cleanName })
-    .select('id')
-    .single()
-
-  if (error) throw new Error(error.message)
-  return created.id
-}
+// (slugify si findOrCreateBrand sunt acum in lib/brands.ts, folosite si la editare)
 
 // POST - adaugă produs nou (admin only)
 export async function POST(req: NextRequest) {
