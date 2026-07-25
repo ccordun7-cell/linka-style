@@ -13,6 +13,11 @@ export default function DescrieriPage() {
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [rowState, setRowState] = useState<Record<string, RowState>>({})
   const [savingAll, setSavingAll] = useState(false)
+  const [showBulkTools, setShowBulkTools] = useState(false)
+  const [exportCopied, setExportCopied] = useState(false)
+  const [importText, setImportText] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState('')
 
   const loadProducts = async () => {
     setLoading(true)
@@ -71,8 +76,108 @@ export default function DescrieriPage() {
     setSavingAll(false)
   }
 
+  const exportList = () => {
+    return products.map(p => `${p.id}::${p.brand_name}::${p.name}`).join('\n')
+  }
+
+  const copyExportList = () => {
+    navigator.clipboard.writeText(exportList())
+    setExportCopied(true)
+    setTimeout(() => setExportCopied(false), 2500)
+  }
+
+  const downloadExportList = () => {
+    const blob = new Blob([exportList()], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'linka-style-produse.txt'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const applyBulkImport = async () => {
+    // Format asteptat: blocuri separate prin o linie cu doar "---"
+    // Prima linie a blocului = ID produs, restul = descrierea completa
+    const blocks = importText.split(/\n---\n/).map(b => b.trim()).filter(Boolean)
+    if (blocks.length === 0) return
+
+    setImporting(true)
+    setImportResult('')
+    let success = 0
+    let failed = 0
+
+    for (const block of blocks) {
+      const lines = block.split('\n')
+      const id = lines[0].trim()
+      const description = lines.slice(1).join('\n').trim()
+      if (!id || !description) { failed++; continue }
+
+      try {
+        const res = await fetch(`/api/produse/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description })
+        })
+        if (res.ok) success++
+        else failed++
+      } catch {
+        failed++
+      }
+    }
+
+    setImporting(false)
+    setImportResult(`Gata: ${success} actualizate${failed > 0 ? `, ${failed} eșuate (verifică ID-urile)` : ''}.`)
+    if (success > 0) {
+      setImportText('')
+      loadProducts()
+    }
+  }
+
   return (
     <AdminLayout title="Descrieri produse">
+      <div className="admin-card" style={{ marginBottom: '20px' }}>
+        <button className="btn-secondary" onClick={() => setShowBulkTools(!showBulkTools)}>
+          {showBulkTools ? 'Ascunde uneltele de export/import' : 'Export listă produse / Import descrieri în masă'}
+        </button>
+
+        {showBulkTools && (
+          <div style={{ marginTop: '16px' }}>
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 800, marginBottom: '6px' }}>1. Exportă lista de produse</h3>
+              <p style={{ fontSize: '12px', color: '#6B7A90', marginBottom: '10px' }}>
+                Trimite lista asta (ID::Brand::Nume, un produs pe linie) ca să caut descrierile.
+              </p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn-primary" onClick={copyExportList}>
+                  {exportCopied ? 'Copiat! ✓' : `Copiază lista (${products.length} produse)`}
+                </button>
+                <button className="btn-secondary" onClick={downloadExportList}>Descarcă .txt</button>
+              </div>
+            </div>
+
+            <div>
+              <h3 style={{ fontSize: '14px', fontWeight: 800, marginBottom: '6px' }}>2. Importă descrierile găsite</h3>
+              <p style={{ fontSize: '12px', color: '#6B7A90', marginBottom: '10px' }}>
+                Lipește aici blocurile primite (ID pe prima linie, descrierea dedesubt, blocuri separate prin o linie cu <code>---</code>).
+              </p>
+              <textarea
+                className="form-control"
+                rows={8}
+                placeholder={'a1b2c3-id-produs\nDescrierea completa aici...\n---\nalt-id-produs\nAlta descriere...'}
+                value={importText}
+                onChange={e => setImportText(e.target.value)}
+                style={{ fontSize: '12px', fontFamily: 'monospace', marginBottom: '10px' }}
+              />
+              {importResult && <p style={{ fontSize: '13px', color: importResult.includes('eșuate') ? '#c62828' : '#1A8A50', marginBottom: '10px' }}>{importResult}</p>}
+              <button className="btn-primary" onClick={applyBulkImport} disabled={importing || !importText.trim()}>
+                {importing ? 'Se aplică...' : 'Aplică descrierile'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
         <input className="form-control" placeholder="Cauta dupa nume sau brand..."
           value={search} onChange={e => setSearch(e.target.value)}
