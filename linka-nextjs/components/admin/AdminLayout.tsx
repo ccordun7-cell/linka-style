@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 
@@ -16,43 +17,64 @@ const menuItems = [
 export default function AdminLayout({ children, title }: { children: React.ReactNode, title: string }) {
   const pathname = usePathname()
   const router = useRouter()
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const handleLogout = async () => {
     await fetch('/api/auth', { method: 'DELETE' })
     router.push('/admin/login')
   }
 
-  return (
-    <div className="admin-layout">
-      <aside className="admin-sidebar">
-        <div style={{padding:'0 20px 24px',borderBottom:'1px solid rgba(255,255,255,.1)'}}>
+  const sidebarContent = (
+    <>
+      <div style={{padding:'0 20px 24px',borderBottom:'1px solid rgba(255,255,255,.1)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div>
           <h1 style={{fontSize:'20px',fontWeight:900,color:'#4AADE8'}}>Linka<span style={{color:'white'}}>Style</span></h1>
           <p style={{fontSize:'11px',color:'rgba(255,255,255,.5)',marginTop:'2px'}}>Panou admin</p>
         </div>
-        <nav style={{padding:'16px 0'}}>
-          {menuItems.map(item => (
-            <Link key={item.href} href={item.href}
-              style={{display:'flex',alignItems:'center',gap:'10px',padding:'12px 20px',fontSize:'14px',fontWeight:600,
-                color: pathname === item.href ? '#4AADE8' : 'rgba(255,255,255,.7)',
-                background: pathname === item.href ? 'rgba(74,173,232,.15)' : 'transparent',
-                borderLeft: pathname === item.href ? '3px solid #4AADE8' : '3px solid transparent'}}>
-              <span>{item.icon}</span>{item.label}
-            </Link>
-          ))}
-        </nav>
-        <div style={{position:'absolute',bottom:'20px',left:0,right:0,padding:'0 20px'}}>
-          <Link href="/" target="_blank"
-            style={{display:'block',textAlign:'center',padding:'10px',borderRadius:'10px',background:'rgba(255,255,255,.1)',color:'rgba(255,255,255,.7)',fontSize:'13px',marginBottom:'8px'}}>
-            Viziteaza site-ul →
+        <button className="admin-menu-close-btn" onClick={() => setMenuOpen(false)}
+          style={{display:'none',background:'none',border:'none',color:'white',fontSize:'22px',cursor:'pointer'}}>✕</button>
+      </div>
+      <nav style={{padding:'16px 0'}}>
+        {menuItems.map(item => (
+          <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
+            style={{display:'flex',alignItems:'center',gap:'10px',padding:'14px 20px',fontSize:'15px',fontWeight:600,
+              color: pathname === item.href ? '#4AADE8' : 'rgba(255,255,255,.7)',
+              background: pathname === item.href ? 'rgba(74,173,232,.15)' : 'transparent',
+              borderLeft: pathname === item.href ? '3px solid #4AADE8' : '3px solid transparent'}}>
+            <span>{item.icon}</span>{item.label}
           </Link>
-          <button onClick={handleLogout}
-            style={{width:'100%',padding:'10px',borderRadius:'10px',background:'rgba(232,68,68,.2)',color:'#ff8a80',border:'none',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>
-            Deconectare
-          </button>
-        </div>
+        ))}
+      </nav>
+      <div style={{position:'absolute',bottom:'20px',left:0,right:0,padding:'0 20px'}}>
+        <Link href="/" target="_blank"
+          style={{display:'block',textAlign:'center',padding:'10px',borderRadius:'10px',background:'rgba(255,255,255,.1)',color:'rgba(255,255,255,.7)',fontSize:'13px',marginBottom:'8px'}}>
+          Viziteaza site-ul →
+        </Link>
+        <button onClick={handleLogout}
+          style={{width:'100%',padding:'10px',borderRadius:'10px',background:'rgba(232,68,68,.2)',color:'#ff8a80',border:'none',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>
+          Deconectare
+        </button>
+      </div>
+    </>
+  )
+
+  return (
+    <div className="admin-layout">
+      <div className="admin-mobile-header">
+        <button aria-label="Deschide meniul" onClick={() => setMenuOpen(true)}
+          style={{background:'none',border:'none',color:'white',fontSize:'24px',cursor:'pointer',padding:'4px 8px'}}>☰</button>
+        <span style={{fontFamily:'inherit',fontWeight:900,fontSize:'17px',color:'white'}}>Linka<span style={{color:'#4AADE8'}}>Style</span></span>
+        <span style={{width:'32px'}}></span>
+      </div>
+
+      {menuOpen && <div className="admin-sidebar-backdrop" onClick={() => setMenuOpen(false)} />}
+
+      <aside className={'admin-sidebar' + (menuOpen ? ' admin-sidebar-open' : '')}>
+        {sidebarContent}
       </aside>
+
       <main className="admin-content">
-        <div style={{marginBottom:'24px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{marginBottom:'24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'8px'}}>
           <h1 style={{fontSize:'24px',fontWeight:900,color:'#1B2E4B'}}>{title}</h1>
           <div style={{fontSize:'13px',color:'#6B7A90'}}>{new Date().toLocaleDateString('ro-MD', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
         </div>

@@ -68,7 +68,22 @@ img { max-width: 100%; display: block; }
 .badge-anulata { background: #ffebee; color: var(--red); }
 .badge-noua { background: #fff9c4; color: #f57f17; }
 
+.admin-mobile-header { display: none; }
+
 @media (max-width: 768px) {
-  .admin-sidebar { display: none; }
+  .admin-mobile-header {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--navy); padding: 12px 8px; position: sticky; top: 0; z-index: 90;
+  }
+  .admin-sidebar {
+    transform: translateX(-100%); transition: transform .25s ease; width: 260px;
+  }
+  .admin-sidebar-open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.25); }
+  .admin-menu-close-btn { display: block !important; }
+  .admin-sidebar-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 99;
+  }
   .admin-content { margin-left: 0; padding: 16px; }
+  .admin-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .admin-card table { min-width: 560px; }
 }

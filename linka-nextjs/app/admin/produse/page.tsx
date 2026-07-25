@@ -242,14 +242,14 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
   }
 
   return (
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1000,overflow:'auto',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'20px'}}>
-      <div style={{background:'white',borderRadius:'16px',padding:'32px',width:'100%',maxWidth:'600px',margin:'20px auto'}}>
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1000,overflow:'auto',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'clamp(8px,3vw,20px)'}}>
+      <div style={{background:'white',borderRadius:'16px',padding:'clamp(16px,4vw,32px)',width:'100%',maxWidth:'600px',margin:'clamp(8px,3vw,20px) auto'}}>
         <div style={{display:'flex',justifyContent:'space-between',marginBottom:'24px'}}>
           <h2 style={{fontSize:'20px',fontWeight:800}}>{isEditing ? `Editeaza: ${product!.name}` : 'Adauga produs nou'}</h2>
           <button onClick={onClose} style={{background:'none',border:'none',fontSize:'20px',cursor:'pointer',color:'#999'}}>✕</button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',gap:'16px'}}>
             <div className="form-group" style={{gridColumn:'1/-1'}}>
               <label>Nume produs (Română) *</label>
               <input className="form-control" value={form.name} onChange={e => setForm({...form,name:e.target.value})} placeholder="ex: Sandale fete Biomecanics roz" required />
@@ -323,7 +323,7 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
             <label style={{display:'block',fontSize:'13px',fontWeight:700,color:'#6B7A90',marginBottom:'10px'}}>Marimi si preturi</label>
             <p style={{fontSize:'12px',color:'#6B7A90',marginBottom:'8px'}}>Lungimea in cm se calculeaza automat, dupa standardul EU (~0.67cm per marime).</p>
             {sizes.map((s, i) => (
-              <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 60px 1fr 1fr auto',gap:'8px',marginBottom:'8px',alignItems:'center'}}>
+              <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 50px 1fr 1fr auto',gap:'6px',marginBottom:'8px',alignItems:'center'}}>
                 <input className="form-control" type="number" placeholder="Marime EU" value={s.size} onChange={e => { const n = [...sizes]; n[i].size = e.target.value; setSizes(n) }} />
                 <span style={{fontSize:'12px',color:'#6B7A90',textAlign:'center'}}>{s.size ? `${sizeToCm(parseInt(s.size))} cm` : '—'}</span>
                 <input className="form-control" type="number" placeholder="Pret MDL" value={s.price} onChange={e => { const n = [...sizes]; n[i].price = e.target.value; setSizes(n) }} />
