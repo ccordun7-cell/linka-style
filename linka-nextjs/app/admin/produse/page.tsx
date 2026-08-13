@@ -85,7 +85,10 @@ export default function ProdusePage() {
                     <td style={{padding:'10px'}}>
                       {p.images?.[0] && <img src={p.images[0].url} alt={p.name} style={{width:50,height:50,objectFit:'cover',borderRadius:8}} />}
                     </td>
-                    <td style={{padding:'10px',fontWeight:600,fontSize:'13px',maxWidth:'200px'}}>{p.name}</td>
+                    <td style={{padding:'10px',fontWeight:600,fontSize:'13px',maxWidth:'200px'}}>
+                      {p.name}
+                      {p.product_code && <div style={{fontSize:'11px',color:'#6B7A90',fontWeight:400}}>Cod: {p.product_code}</div>}
+                    </td>
                     <td style={{padding:'10px',fontSize:'13px',color:'#4AADE8',fontWeight:700}}>{p.brand_name}</td>
                     <td style={{padding:'10px',fontSize:'13px'}}>
                       {p.category === 'girls' ? 'Fete' : p.category === 'boys' ? 'Baieti' : p.category === 'barefoot' ? 'Barefoot' : 'Scoala'}
@@ -125,6 +128,7 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
   const [form, setForm] = useState({
     name: product?.name || '',
     name_ru: product?.name_ru || '',
+    product_code: product?.product_code || '',
     brand_name: product?.brand_name || '',
     category: product?.category || 'girls',
     type: product?.type || 'sandale',
@@ -199,6 +203,7 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
           body: JSON.stringify({
             name: form.name,
             name_ru: form.name_ru,
+            product_code: form.product_code,
             brand_name: form.brand_name,
             price: parseInt(form.price),
             description: form.description,
@@ -257,6 +262,10 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
             <div className="form-group" style={{gridColumn:'1/-1'}}>
               <label>Nume produs (Русский)</label>
               <input className="form-control" value={form.name_ru} onChange={e => setForm({...form,name_ru:e.target.value})} placeholder="ex: Сандалии для девочек Biomecanics розовые" />
+            </div>
+            <div className="form-group" style={{gridColumn:'1/-1'}}>
+              <label>Cod produs</label>
+              <input className="form-control" value={form.product_code} onChange={e => setForm({...form,product_code:e.target.value})} placeholder="ex: cel de pe factura/actele de la furnizor" />
             </div>
             <div className="form-group">
               <label>Brand *</label>

@@ -24,6 +24,7 @@ export interface Product {
   slug: string
   name: string
   name_ru?: string
+  product_code?: string
   brand_id: string
   brand_name: string
   brand_slug: string

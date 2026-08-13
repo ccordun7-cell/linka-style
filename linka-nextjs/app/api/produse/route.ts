@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { name, brand_name, type, category, price, description, is_barefoot, is_sale, sale_price, sizes, images } = body
+  const { name, brand_name, product_code, type, category, price, description, is_barefoot, is_sale, sale_price, sizes, images } = body
 
   if (!brand_name || !brand_name.trim()) {
     return NextResponse.json({ error: 'Numele brandului este obligatoriu' }, { status: 400 })
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   // Inserez produsul
   const { data: product, error: productError } = await supabaseAdmin
     .from('products')
-    .insert({ slug, name, brand_id, type, category, price, description, is_barefoot, is_sale: !!is_sale, sale_price: is_sale ? sale_price : null })
+    .insert({ slug, name, product_code, brand_id, type, category, price, description, is_barefoot, is_sale: !!is_sale, sale_price: is_sale ? sale_price : null })
     .select()
     .single()
 
