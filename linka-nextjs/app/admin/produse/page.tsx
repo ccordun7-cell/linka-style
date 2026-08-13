@@ -137,7 +137,10 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
     description_ru: product?.description_ru || '',
     is_barefoot: product?.is_barefoot || false,
     is_sale: product?.is_sale || false,
-    sale_price: product?.sale_price ? String(product.sale_price) : ''
+    sale_price: product?.sale_price ? String(product.sale_price) : '',
+    discount_percent: (product?.is_sale && product?.sale_price && product?.price)
+      ? String(Math.round((1 - product.sale_price / product.price) * 100))
+      : ''
   })
   const [sizes, setSizes] = useState(
     product?.sizes?.length
@@ -184,8 +187,8 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
       setError('Completeaza toate campurile obligatorii!')
       return
     }
-    if (form.is_sale && (!form.sale_price || parseInt(form.sale_price) >= parseInt(form.price))) {
-      setError('Pretul redus trebuie completat si sa fie mai mic decat pretul normal!')
+    if (form.is_sale && (!form.discount_percent || parseInt(form.discount_percent) <= 0 || parseInt(form.discount_percent) >= 100)) {
+      setError('Introdu un procent de reducere valid (intre 1 si 99)!')
       return
     }
     setError('')
@@ -309,11 +312,18 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
             </div>
             {form.is_sale && (
               <div className="form-group" style={{gridColumn:'1/-1'}}>
-                <label>Pret redus (MDL) *</label>
-                <input type="number" className="form-control" value={form.sale_price} onChange={e => setForm({...form,sale_price:e.target.value})} placeholder="mai mic decat pretul de baza" />
-                {form.price && form.sale_price && parseInt(form.sale_price) < parseInt(form.price) && (
+                <label>Procent reducere (%) *</label>
+                <input type="number" className="form-control" value={form.discount_percent}
+                  onChange={e => {
+                    const percent = e.target.value
+                    const base = parseInt(form.price)
+                    const computed = (base && percent) ? Math.round(base * (1 - parseInt(percent) / 100)) : ''
+                    setForm({...form, discount_percent: percent, sale_price: String(computed)})
+                  }}
+                  placeholder="ex: 10 pentru 10% reducere" />
+                {form.price && form.sale_price && parseInt(form.discount_percent) > 0 && (
                   <p style={{fontSize:'12px',color:'#1A8A50',marginTop:'4px'}}>
-                    -{Math.round((1 - parseInt(form.sale_price) / parseInt(form.price)) * 100)}% reducere
+                    Pret redus: <b>{form.sale_price} MDL</b> (din {form.price} MDL)
                   </p>
                 )}
               </div>
