@@ -11,6 +11,7 @@ const menuItems = [
   { href: '/admin/comenzi', label: 'Comenzi', icon: '📦' },
   { href: '/admin/retururi', label: 'Retururi', icon: '🔄' },
   { href: '/admin/newsletter', label: 'Newsletter', icon: '✉️' },
+  { href: '/admin/promocoduri', label: 'Promo Coduri', icon: '🎟️' },
   { href: '/admin/setari', label: 'Setari', icon: '⚙️' },
 ]
 
