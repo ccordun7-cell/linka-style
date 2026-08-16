@@ -213,6 +213,7 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
             description: form.description,
             description_ru: form.description_ru,
             category: form.category,
+            type: form.type,
             is_barefoot: form.is_barefoot,
             is_premium: form.is_premium,
             is_sale: form.is_sale,
@@ -292,7 +293,7 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
             </div>
             <div className="form-group">
               <label>Tip produs</label>
-              <select className="form-control" value={form.type} onChange={e => setForm({...form,type:e.target.value})} disabled={isEditing}>
+              <select className="form-control" value={form.type} onChange={e => setForm({...form,type:e.target.value})}>
                 <option value="sandale">Sandale</option>
                 <option value="sneakers">Sneakers</option>
                 <option value="pantofi">Pantofi</option>
