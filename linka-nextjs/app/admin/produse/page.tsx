@@ -137,6 +137,7 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
     description_ru: product?.description_ru || '',
     is_barefoot: product?.is_barefoot || false,
     is_premium: product?.is_premium || false,
+    is_school: product?.is_school || false,
     is_sale: product?.is_sale || false,
     sale_price: product?.sale_price ? String(product.sale_price) : '',
     discount_percent: (product?.is_sale && product?.sale_price && product?.price)
@@ -216,6 +217,7 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
             type: form.type,
             is_barefoot: form.is_barefoot,
             is_premium: form.is_premium,
+            is_school: form.is_school,
             is_sale: form.is_sale,
             sale_price: form.is_sale ? parseInt(form.sale_price) : null,
             is_active: true,
@@ -312,6 +314,10 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
             <div className="form-group" style={{gridColumn:'1/-1',display:'flex',alignItems:'center',gap:'10px'}}>
               <input type="checkbox" id="premium" checked={form.is_premium} onChange={e => setForm({...form,is_premium:e.target.checked})} />
               <label htmlFor="premium" style={{margin:0}}>Primii pași (insignă pentru încălțăminte de bebeluși care încep să meargă)</label>
+            </div>
+            <div className="form-group" style={{gridColumn:'1/-1',display:'flex',alignItems:'center',gap:'10px'}}>
+              <input type="checkbox" id="school" checked={form.is_school} onChange={e => setForm({...form,is_school:e.target.checked})} />
+              <label htmlFor="school" style={{margin:0}}>Este produs de școală (apare și la Școală, chiar dacă categoria e Fete/Băieți)</label>
             </div>
             <div className="form-group" style={{gridColumn:'1/-1',display:'flex',alignItems:'center',gap:'10px'}}>
               <input type="checkbox" id="sale" checked={form.is_sale} onChange={e => setForm({...form,is_sale:e.target.checked})} />

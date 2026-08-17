@@ -35,6 +35,7 @@ export interface Product {
   description_ru?: string
   is_barefoot: boolean
   is_premium: boolean
+  is_school: boolean
   is_sale: boolean
   sale_price?: number
   is_active: boolean
