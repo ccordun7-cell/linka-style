@@ -13,7 +13,6 @@ const menuItems = [
   { href: '/admin/newsletter', label: 'Newsletter', icon: '✉️' },
   { href: '/admin/promocoduri', label: 'Promo Coduri', icon: '🎟️' },
   { href: '/admin/recenzii', label: 'Recenzii', icon: '⭐' },
-  { href: '/admin/bannere', label: 'Bannere', icon: '🖼️' },
   { href: '/admin/setari', label: 'Setari', icon: '⚙️' },
 ]
 
