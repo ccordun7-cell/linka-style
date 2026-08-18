@@ -35,7 +35,7 @@ CREATE TABLE products (
   name_ru TEXT,
   brand_id UUID REFERENCES brands(id),
   type TEXT NOT NULL DEFAULT 'pantofi',
-  category TEXT NOT NULL CHECK (category IN ('girls', 'boys', 'barefoot', 'school')),
+  category TEXT NOT NULL CHECK (category IN ('girls', 'boys', 'barefoot', 'school', 'papucei')),
   price INTEGER NOT NULL,
   description TEXT,
   description_ru TEXT,

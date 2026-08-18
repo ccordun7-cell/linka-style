@@ -29,7 +29,7 @@ export interface Product {
   brand_name: string
   brand_slug: string
   type: string
-  category: 'girls' | 'boys' | 'barefoot' | 'school'
+  category: 'girls' | 'boys' | 'barefoot' | 'school' | 'papucei'
   price: number
   description?: string
   description_ru?: string

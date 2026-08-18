@@ -91,7 +91,7 @@ export default function ProdusePage() {
                     </td>
                     <td style={{padding:'10px',fontSize:'13px',color:'#4AADE8',fontWeight:700}}>{p.brand_name}</td>
                     <td style={{padding:'10px',fontSize:'13px'}}>
-                      {p.category === 'girls' ? 'Fete' : p.category === 'boys' ? 'Baieti' : p.category === 'barefoot' ? 'Barefoot' : 'Scoala'}
+                      {p.category === 'girls' ? 'Fete' : p.category === 'boys' ? 'Baieti' : p.category === 'barefoot' ? 'Barefoot' : p.category === 'papucei' ? 'Papucei' : 'Scoala'}
                     </td>
                     <td style={{padding:'10px',fontWeight:700}}>
                       {p.is_sale && p.sale_price ? (
@@ -290,6 +290,7 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
                 <option value="girls">Fete</option>
                 <option value="boys">Baieti</option>
                 <option value="barefoot">Barefoot</option>
+                <option value="papucei">Papucei</option>
                 <option value="school">Scoala</option>
               </select>
             </div>
