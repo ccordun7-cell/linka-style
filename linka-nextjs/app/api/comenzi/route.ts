@@ -64,10 +64,13 @@ export async function POST(req: NextRequest) {
   await supabaseAdmin.from('order_attempts').insert({ ip }).then(() => {}, () => {})
 
   const body = await req.json()
-  const { customer_name, customer_phone, customer_email, delivery_address, delivery_city, payment_method, items, promo_code } = body
+  const { customer_name, customer_phone, customer_email, delivery_address, delivery_city, payment_method, items, promo_code, data_consent } = body
 
   if (!customer_name || !customer_phone || !items?.length) {
     return NextResponse.json({ error: 'Date incomplete' }, { status: 400, headers: corsHeaders })
+  }
+  if (!data_consent) {
+    return NextResponse.json({ error: 'Este necesar acordul pentru prelucrarea datelor cu caracter personal.' }, { status: 400, headers: corsHeaders })
   }
 
   // SECURITATE: nu am incredere in pret/nume/brand trimise de client — le recalculez
@@ -128,7 +131,8 @@ export async function POST(req: NextRequest) {
     delivery_address, delivery_city: delivery_city || 'Chișinău',
     payment_method: payment_method || 'ramburs',
     total, delivery_cost, status: 'noua',
-    promo_code: appliedPromoCode, discount_amount
+    promo_code: appliedPromoCode, discount_amount,
+    data_consent: true
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders })

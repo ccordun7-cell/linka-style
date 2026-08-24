@@ -92,6 +92,7 @@ CREATE TABLE orders (
   discount_amount NUMERIC DEFAULT 0,
   status TEXT DEFAULT 'noua' CHECK (status IN ('noua', 'confirmata', 'in_livrare', 'livrata', 'anulata')),
   notes TEXT,
+  data_consent BOOLEAN NOT NULL DEFAULT FALSE,
   telegram_sent BOOLEAN DEFAULT FALSE,
   email_sent BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
