@@ -27,6 +27,17 @@ export default function NewsletterPage() {
 
   useEffect(() => { loadSubscribers() }, [])
 
+  const handleDelete = async (id: string, email: string) => {
+    if (!confirm(`Ștergi definitiv ${email} din lista de newsletter?`)) return
+    const res = await fetch('/api/newsletter', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    })
+    if (res.ok) setSubscribers(prev => prev.filter(s => s.id !== id))
+    else alert('Eroare la ștergere.')
+  }
+
   const copyAllEmails = () => {
     const emails = subscribers.map(s => s.email).join(', ')
     navigator.clipboard.writeText(emails)
@@ -106,7 +117,7 @@ export default function NewsletterPage() {
           <table style={{width:'100%',borderCollapse:'collapse'}}>
             <thead>
               <tr style={{borderBottom:'2px solid #f0f4f8'}}>
-                {['Email','Sursa','Data'].map(h => (
+                {['Email','Sursa','Data',''].map(h => (
                   <th key={h} style={{padding:'10px',textAlign:'left',fontSize:'12px',color:'#6B7A90',fontWeight:700,textTransform:'uppercase'}}>{h}</th>
                 ))}
               </tr>
@@ -117,6 +128,9 @@ export default function NewsletterPage() {
                   <td style={{padding:'10px',fontSize:'13px',fontWeight:600}}>{s.email}</td>
                   <td style={{padding:'10px',fontSize:'12px',color:'#6B7A90'}}>{s.source}</td>
                   <td style={{padding:'10px',fontSize:'12px',color:'#6B7A90'}}>{new Date(s.created_at).toLocaleDateString('ro-MD')}</td>
+                  <td style={{padding:'10px',textAlign:'right'}}>
+                    <button onClick={() => handleDelete(s.id, s.email)} style={{background:'none',border:'none',color:'#c62828',fontSize:'12px',fontWeight:700,cursor:'pointer'}}>Șterge</button>
+                  </td>
                 </tr>
               ))}
             </tbody>

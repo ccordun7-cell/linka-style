@@ -1,4 +1,5 @@
 import sgMail from '@sendgrid/mail'
+import crypto from 'crypto'
 import { Order, ReturnRequest } from '@/types'
 
 if (process.env.SENDGRID_API_KEY) {
@@ -7,6 +8,18 @@ if (process.env.SENDGRID_API_KEY) {
 
 const SENDER_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'ccordun7@gmail.com'
 const REPLY_TO_EMAIL = process.env.SENDGRID_REPLY_TO || 'mobilife16@gmail.com'
+const SITE_BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://linka-style.vercel.app'
+
+// Foloseste acelasi secret ca autentificarea admin — evitam sa cerem clientei
+// sa adauge inca o variabila de mediu in Vercel doar pentru asta.
+export function getUnsubscribeToken(email: string) {
+  return crypto.createHmac('sha256', process.env.ADMIN_JWT_SECRET!).update(email.trim().toLowerCase()).digest('hex')
+}
+
+function buildUnsubscribeUrl(email: string) {
+  const token = getUnsubscribeToken(email)
+  return `${SITE_BASE_URL}/api/newsletter/dezabonare?email=${encodeURIComponent(email)}&token=${token}`
+}
 
 export async function sendOrderConfirmationToClient(order: Order) {
   const itemsHtml = order.items?.map(item =>
@@ -121,6 +134,7 @@ export async function sendNewsletterBlast(subject: string, message: string, reci
 
   // Fiecare destinatar isi vede doar propria adresa (personalizations separate),
   // nu o lista comuna vizibila tuturor.
+  const UNSUB_TAG = '-unsubscribe_url-'
   const messageHtml = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
       <div style="background:#4AADE8;padding:24px;text-align:center">
@@ -131,7 +145,8 @@ export async function sendNewsletterBlast(subject: string, message: string, reci
         <div style="background:#f9f9f9;padding:16px;border-radius:8px;margin-top:24px">
           <p style="margin:0;color:#666;font-size:12px">
             Primești acest email pentru că ești abonat la newsletter-ul Linka Style.<br>
-            Întrebări? Scrie-ne: <a href="mailto:info@linkastyle.com">info@linkastyle.com</a>
+            Întrebări? Scrie-ne: <a href="mailto:info@linkastyle.com">info@linkastyle.com</a><br>
+            <a href="${UNSUB_TAG}" style="color:#999">Dezabonează-te</a>
           </p>
         </div>
       </div>
@@ -148,7 +163,10 @@ export async function sendNewsletterBlast(subject: string, message: string, reci
       replyTo: REPLY_TO_EMAIL,
       subject,
       html: messageHtml,
-      personalizations: batch.map(email => ({ to: [{ email }] }))
+      personalizations: batch.map(email => ({
+        to: [{ email }],
+        substitutions: { [UNSUB_TAG]: buildUnsubscribeUrl(email) }
+      }))
     } as any)
     sent += batch.length
   }

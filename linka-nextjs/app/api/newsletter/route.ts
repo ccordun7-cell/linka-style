@@ -33,6 +33,18 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(data)
 }
 
+// DELETE - eliminare manuala a unui abonat (admin)
+export async function DELETE(req: NextRequest) {
+  if (!await isAuthenticated()) return NextResponse.json({ error: 'Neautorizat' }, { status: 401 })
+
+  const { id } = await req.json()
+  if (!id) return NextResponse.json({ error: 'Id lipsa.' }, { status: 400 })
+
+  const { error } = await supabaseAdmin.from('newsletter_subscribers').delete().eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ success: true })
+}
+
 // POST - abonare noua (public)
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
