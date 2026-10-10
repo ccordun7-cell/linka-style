@@ -102,7 +102,12 @@ export default function ProdusePage() {
                       ) : `${p.price} MDL`}
                     </td>
                     <td style={{padding:'10px',fontSize:'12px',color:'#6B7A90'}}>
-                      {p.sizes?.map((s: any) => s.size).join(', ')}
+                      {p.sizes?.map((s: any, i: number) => (
+                        <span key={i}>
+                          {i > 0 && ', '}
+                          {s.stock > 0 ? s.size : <span style={{textDecoration:'line-through',color:'#c62828'}} title="Consumat">{s.size}</span>}
+                        </span>
+                      ))}
                     </td>
                     <td style={{padding:'10px', display:'flex', gap:'8px'}} onClick={e => e.stopPropagation()}>
                       <button className="btn-secondary" onClick={() => setEditingProduct(p)}>
@@ -146,8 +151,8 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
   })
   const [sizes, setSizes] = useState(
     product?.sizes?.length
-      ? product.sizes.map((s: any) => ({ size: String(s.size), price: String(s.price), stock: String(s.stock) }))
-      : [{ size: '', price: '', stock: '10' }]
+      ? product.sizes.map((s: any) => ({ size: String(s.size), price: String(s.price), stock: String(s.stock ?? 10), prevStock: '' }))
+      : [{ size: '', price: '', stock: '10', prevStock: '' }]
   )
   const [existingImages, setExistingImages] = useState<{ id: string, url: string }[]>(
     (product?.images || []).slice().sort((a: any, b: any) => a.position - b.position).map((img: any) => ({ id: img.id, url: img.url }))
@@ -196,9 +201,15 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
     setError('')
     setLoading(true)
     try {
-      const sizesPayload = sizes.filter(s => s.size).map(s => ({
-        size: parseInt(s.size), price: parseInt(s.price) || parseInt(form.price), stock: parseInt(s.stock) || 10
-      }))
+      const sizesPayload = sizes.filter(s => s.size).map(s => {
+        const stockNum = parseInt(s.stock)
+        return {
+          size: parseInt(s.size),
+          price: parseInt(s.price) || parseInt(form.price),
+          // camp gol = 10 implicit; 0 = consumat (marimea ramane pe site, dar taiata)
+          stock: isNaN(stockNum) ? 10 : Math.max(0, stockNum)
+        }
+      })
 
       let res: Response
       if (isEditing) {
@@ -300,6 +311,7 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
                 <option value="sneakers">Sneakers</option>
                 <option value="pantofi">Pantofi</option>
                 <option value="ghete">Ghete</option>
+                <option value="botine">Botine</option>
                 <option value="balerini">Balerini</option>
                 <option value="papucei">Papucei</option>
               </select>
@@ -355,16 +367,36 @@ function FormProdus({ product, onClose, existingBrands }: { product?: Product, o
           <div style={{marginBottom:'20px'}}>
             <label style={{display:'block',fontSize:'13px',fontWeight:700,color:'#6B7A90',marginBottom:'10px'}}>Marimi si preturi</label>
             <p style={{fontSize:'12px',color:'#6B7A90',marginBottom:'8px'}}>Lungimea in cm se calculeaza automat, dupa standardul EU (~0.67cm per marime).</p>
-            {sizes.map((s, i) => (
-              <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 50px 1fr 1fr auto',gap:'6px',marginBottom:'8px',alignItems:'center'}}>
-                <input className="form-control" type="number" placeholder="Marime EU" value={s.size} onChange={e => { const n = [...sizes]; n[i].size = e.target.value; setSizes(n) }} />
-                <span style={{fontSize:'12px',color:'#6B7A90',textAlign:'center'}}>{s.size ? `${sizeToCm(parseInt(s.size))} cm` : '—'}</span>
-                <input className="form-control" type="number" placeholder="Pret MDL" value={s.price} onChange={e => { const n = [...sizes]; n[i].price = e.target.value; setSizes(n) }} />
-                <input className="form-control" type="number" placeholder="Stoc" value={s.stock} onChange={e => { const n = [...sizes]; n[i].stock = e.target.value; setSizes(n) }} />
-                <button type="button" onClick={() => setSizes(sizes.filter((_,j) => j !== i))} style={{background:'#ffebee',border:'none',borderRadius:'8px',padding:'0 12px',color:'#c62828',cursor:'pointer'}}>✕</button>
-              </div>
-            ))}
-            <button type="button" onClick={() => setSizes([...sizes, {size:'',price:'',stock:'10'}])} className="btn-secondary" style={{fontSize:'13px'}}>
+            <p style={{fontSize:'12px',color:'#6B7A90',marginBottom:'8px'}}>Butonul <b>Consumat</b> marchează mărimea ca terminată: rămâne vizibilă pe site, dar tăiată și nu poate fi comandată. Apasă <b>Reactivează</b> când revine în stoc. Nu uita să salvezi produsul.</p>
+            {sizes.map((s, i) => {
+              const consumed = s.stock !== '' && parseInt(s.stock) <= 0
+              return (
+                <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 50px 1fr 1fr auto auto',gap:'6px',marginBottom:'8px',alignItems:'center',opacity: consumed ? .75 : 1}}>
+                  <input className="form-control" type="number" placeholder="Marime EU" value={s.size} onChange={e => { const n = [...sizes]; n[i].size = e.target.value; setSizes(n) }}
+                    style={consumed ? {textDecoration:'line-through',color:'#c62828'} : undefined} />
+                  <span style={{fontSize:'12px',color:'#6B7A90',textAlign:'center'}}>{s.size ? `${sizeToCm(parseInt(s.size))} cm` : '—'}</span>
+                  <input className="form-control" type="number" placeholder="Pret MDL" value={s.price} onChange={e => { const n = [...sizes]; n[i].price = e.target.value; setSizes(n) }} />
+                  <input className="form-control" type="number" min={0} placeholder="Stoc" value={s.stock} onChange={e => { const n = [...sizes]; n[i].stock = e.target.value; setSizes(n) }} />
+                  <button type="button"
+                    onClick={() => {
+                      const n = [...sizes]
+                      if (consumed) {
+                        n[i] = { ...n[i], stock: n[i].prevStock && parseInt(n[i].prevStock) > 0 ? n[i].prevStock : '1', prevStock: '' }
+                      } else {
+                        n[i] = { ...n[i], prevStock: n[i].stock, stock: '0' }
+                      }
+                      setSizes(n)
+                    }}
+                    title={consumed ? 'Mărimea revine în stoc' : 'Marchează mărimea ca terminată'}
+                    style={{border:'none',borderRadius:'8px',padding:'8px 10px',fontSize:'12px',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap',
+                      background: consumed ? '#e8f5e9' : '#fff3e0', color: consumed ? '#1A8A50' : '#e65100'}}>
+                    {consumed ? 'Reactivează' : 'Consumat'}
+                  </button>
+                  <button type="button" onClick={() => setSizes(sizes.filter((_,j) => j !== i))} style={{background:'#ffebee',border:'none',borderRadius:'8px',padding:'8px 12px',color:'#c62828',cursor:'pointer'}}>✕</button>
+                </div>
+              )
+            })}
+            <button type="button" onClick={() => setSizes([...sizes, {size:'',price:'',stock:'10',prevStock:''}])} className="btn-secondary" style={{fontSize:'13px'}}>
               + Adauga marime
             </button>
           </div>

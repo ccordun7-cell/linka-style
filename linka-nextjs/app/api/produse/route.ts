@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         product_id: product.id,
         size: s.size,
         price: s.price || price,
-        stock_quantity: s.stock || 10
+        stock_quantity: typeof s.stock === 'number' && s.stock >= 0 ? s.stock : 10
       }))
     )
   }

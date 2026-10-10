@@ -45,7 +45,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     if (sizes.length) {
       const { error: insertSizesError } = await supabaseAdmin.from('product_sizes').insert(
-        sizes.map((s: any) => ({ product_id: id, size: s.size, price: s.price, stock_quantity: s.stock }))
+        sizes.map((s: any) => ({ product_id: id, size: s.size, price: s.price, stock_quantity: typeof s.stock === 'number' && s.stock >= 0 ? s.stock : 10 }))
       )
       if (insertSizesError) {
         return NextResponse.json({ error: 'Eroare la salvarea marimilor noi: ' + insertSizesError.message }, { status: 500 })
